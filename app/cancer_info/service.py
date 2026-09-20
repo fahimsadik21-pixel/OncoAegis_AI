@@ -217,13 +217,20 @@ class CancerInformationService:
     def _configured_model_answer(
         self, topic: CancerTopic, question: str, language: str
     ) -> CancerInformationResponse | None:
-        api_key = os.getenv("ONCOAEGIS_CANCER_AI_API_KEY") or os.getenv("OPENAI_API_KEY")
+        api_key = (
+            os.getenv("ONCOAEGIS_CANCER_AI_API_KEY")
+            or os.getenv("GEMINI_API_KEY")
+            or os.getenv("GOOGLE_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+        )
         if not api_key:
             return None
-        base_url = os.getenv(
-            "ONCOAEGIS_CANCER_AI_BASE_URL", "https://api.openai.com/v1"
+        base_url = (
+            os.getenv("ONCOAEGIS_CANCER_AI_BASE_URL")
+            or os.getenv("GEMINI_BASE_URL")
+            or "https://api.openai.com/v1"
         ).rstrip("/")
-        model = os.getenv("ONCOAEGIS_CANCER_AI_MODEL", "gpt-4o-mini")
+        model = os.getenv("ONCOAEGIS_CANCER_AI_MODEL") or os.getenv("GEMINI_MODEL") or "gpt-4o-mini"
         prompt_language = "Bangla" if language == "bn" else "English"
         system = (
             "You are Onco Aegis AI, a careful cancer-information educator. "
@@ -247,17 +254,17 @@ class CancerInformationService:
             },
             ensure_ascii=False,
         )
-        body = json.dumps(
-            {
-                "model": model,
-                "temperature": 0.15,
-                "response_format": {"type": "json_object"},
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": user},
-                ],
-            }
-        ).encode("utf-8")
+        body_payload = {
+            "model": model,
+            "temperature": 0.15,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        }
+        if "generativelanguage.googleapis.com" not in base_url:
+            body_payload["response_format"] = {"type": "json_object"}
+        body = json.dumps(body_payload).encode("utf-8")
         request = Request(
             f"{base_url}/chat/completions",
             data=body,
@@ -272,6 +279,8 @@ class CancerInformationService:
             with urlopen(request, timeout=25) as response:
                 payload = json.loads(response.read().decode("utf-8"))
             content = payload["choices"][0]["message"]["content"]
+            if content.strip().startswith("```"):
+                content = content.strip().split("\n", 1)[-1].rsplit("```", 1)[0].strip()
             parsed = json.loads(content)
             sections = [InformationSection.model_validate(item) for item in parsed.get("sections", [])]
             if not isinstance(parsed.get("answer"), str) or not sections:
