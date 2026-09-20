@@ -217,18 +217,18 @@ class CancerInformationService:
     def _configured_model_answer(
         self, topic: CancerTopic, question: str, language: str
     ) -> CancerInformationResponse | None:
-        api_key = (
-            os.getenv("ONCOAEGIS_CANCER_AI_API_KEY")
-            or os.getenv("GEMINI_API_KEY")
-            or os.getenv("GOOGLE_API_KEY")
-            or os.getenv("OPENAI_API_KEY")
-        )
+        gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        api_key = os.getenv("ONCOAEGIS_CANCER_AI_API_KEY") or gemini_key or os.getenv("OPENAI_API_KEY")
         if not api_key:
             return None
         base_url = (
             os.getenv("ONCOAEGIS_CANCER_AI_BASE_URL")
             or os.getenv("GEMINI_BASE_URL")
-            or "https://api.openai.com/v1"
+            or (
+                "https://generativelanguage.googleapis.com/v1beta/openai"
+                if gemini_key
+                else "https://api.openai.com/v1"
+            )
         ).rstrip("/")
         configured_model = os.getenv("ONCOAEGIS_CANCER_AI_MODEL") or os.getenv("GEMINI_MODEL")
         model = configured_model or (
