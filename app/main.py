@@ -16,6 +16,7 @@ from app.core.capability_registry import get_capabilities
 from app.core.input_inspector import inspect_input
 from app.core.model_router import route_specialist_model
 from app.core.analysis_orchestrator import AnalysisOrchestrator
+from app.deployment.checkpoint_bootstrap import bootstrap_checkpoints
 from app.core.specialist_input import (
     MAX_SPECIALIST_FILE_BYTES,
     MAX_SPECIALIST_FILES,
@@ -200,6 +201,12 @@ app.include_router(tn3k_thyroid_router)
 app.include_router(auth_router)
 app.include_router(cancer_information_router)
 app.include_router(chat_history_router)
+
+
+@app.on_event("startup")
+def download_deployment_checkpoints() -> None:
+    """Make public research checkpoints available on ephemeral deploys."""
+    bootstrap_checkpoints()
 
 # The product UI is intentionally mounted beside the JSON API so the same
 # FastAPI process can be used locally without a separate frontend server.
