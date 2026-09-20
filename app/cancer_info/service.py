@@ -267,8 +267,6 @@ class CancerInformationService:
                 {"role": "user", "content": user},
             ],
         }
-        if "generativelanguage.googleapis.com" not in base_url:
-            body_payload["response_format"] = {"type": "json_object"}
         body = json.dumps(body_payload).encode("utf-8")
         request = Request(
             f"{base_url}/chat/completions",
