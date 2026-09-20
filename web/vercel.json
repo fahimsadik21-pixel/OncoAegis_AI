@@ -1,0 +1,18 @@
+{
+  "rewrites": [
+    { "source": "/app/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/app", "destination": "/" },
+    { "source": "/auth/:path*", "destination": "https://oncoaegis-ai.onrender.com/auth/:path*" },
+    { "source": "/chat/:path*", "destination": "https://oncoaegis-ai.onrender.com/chat/:path*" },
+    { "source": "/analyze/:path*", "destination": "https://oncoaegis-ai.onrender.com/analyze/:path*" },
+    { "source": "/information/:path*", "destination": "https://oncoaegis-ai.onrender.com/information/:path*" },
+    { "source": "/cases/:path*", "destination": "https://oncoaegis-ai.onrender.com/cases/:path*" },
+    { "source": "/storage/:path*", "destination": "https://oncoaegis-ai.onrender.com/storage/:path*" },
+    { "source": "/capabilities", "destination": "https://oncoaegis-ai.onrender.com/capabilities" },
+    { "source": "/datasets", "destination": "https://oncoaegis-ai.onrender.com/datasets" },
+    { "source": "/models", "destination": "https://oncoaegis-ai.onrender.com/models" },
+    { "source": "/cancer-capabilities", "destination": "https://oncoaegis-ai.onrender.com/cancer-capabilities" },
+    { "source": "/health", "destination": "https://oncoaegis-ai.onrender.com/health" },
+    { "source": "/system/status", "destination": "https://oncoaegis-ai.onrender.com/system/status" }
+  ]
+}
