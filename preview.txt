@@ -1,0 +1,708 @@
+ONCOAEGIS AI — MASTER PROJECT PLAN
+
+1. Project Identity
+===================
+Project Name: OncoAegis AI
+Project Type: Multimodal Cancer Detection + Analysis AI Assistant
+
+Main Goal:
+একটি single AI assistant তৈরি করা, যা বাইরে থেকে user-এর কাছে একটাই system হিসেবে কাজ করবে, কিন্তু ভিতরে multiple universal models, specialist cancer models, routing system, multimodal fusion, evidence verification এবং uncertainty engine ব্যবহার করবে।
+
+এই system chatbot হবে না। Chat-style interaction থাকতে পারে, কিন্তু সেটা system-এর শুধু একটি interaction layer হবে।
+
+2. Core Vision
+==============
+OncoAegis AI-এর কাজ হবে:
+- CT scan বুঝতে পারা
+- Ultrasound image/video বুঝতে পারা
+- ভবিষ্যতে MRI/PET/Mammography support করা
+- PDF report বুঝতে পারা
+- TXT/clinical text বুঝতে পারা
+- Pathology report বুঝতে পারা
+- Biopsy report বুঝতে পারা
+- Radiology report বুঝতে পারা
+- Lab report থেকে cancer-related evidence বের করা
+- Imaging থেকে suspicious lesion detect করা
+- Lesion localization করা
+- Segmentation করা
+- Size/volume calculate করা
+- Organ/site identify করা
+- Specialist cancer model দিয়ে classification/risk analysis করা
+- Multiple evidence combine করা
+- Imaging এবং report একে অপরের সাথে agree করে কিনা detect করা
+- Conflict থাকলে সেটা flag করা
+- Confidence/uncertainty দেখানো
+- Low-confidence হলে forced answer না দেওয়া
+- Unsupported case হলে “unsupported / insufficient evidence” বলা
+
+3. Core Architecture
+====================
+                         USER
+                          |
+          +---------------+---------------+
+          |               |               |
+          v               v               v
+       CT Scan        Ultrasound       Text / PDF
+          |               |               |
+          v               v               v
+      CT Engine       US Engine      Document Engine
+          |               |               |
+          v               v               v
+ Universal Models   Universal Models   Medical NLP/VLM
+          |               |               |
+          v               v               v
+ Specialist Models Specialist Models Cancer Evidence Extraction
+          |               |               |
+          +---------------+---------------+
+                          |
+                          v
+                  Multimodal Fusion
+                          |
+                          v
+             Cross-Modal Verification
+                          |
+                          v
+                Uncertainty Engine
+                          |
+                          v
+              Medical Reasoning Layer
+                          |
+                          v
+               Unified Cancer Result
+
+4. Detection + Analysis — Both Are Mandatory
+============================================
+OncoAegis শুধু cancer detect করবে না।
+এটা cancer-related findings detect + analyze দুটোই করবে।
+
+Detection tasks:
+- lesion detection
+- tumor localization
+- suspicious region detection
+- multi-lesion detection
+- organ-specific detection
+- segmentation
+- specialist classification
+
+Analysis tasks:
+- organ/site analysis
+- lesion size
+- lesion volume
+- lesion count
+- shape/morphology
+- imaging characteristics
+- malignancy/risk classification যেখানে validated
+- spread/metastasis-related evidence যেখানে supported
+- report evidence
+- biomarkers
+- grade/stage যদি report/document-এ support থাকে
+- follow-up comparison ভবিষ্যতে
+- evidence agreement/conflict
+
+5. Important Medical Rule
+=========================
+Imaging model থেকে সরাসরি “Cancer confirmed” বলবে না, যদি definitive pathology evidence না থাকে।
+
+Imaging output হবে:
+- suspicious lesion
+- suspicious for malignancy
+- high-risk appearance
+- model probability
+- indeterminate
+- requires review
+
+Pathology/biopsy report explicit cancer confirmation দিলে system বলতে পারবে:
+“Supplied pathology report documents confirmed malignancy.”
+
+6. Pan-Cancer Meaning
+=====================
+Pan-cancer এখানে মানে:
+একাধিক cancer type, organ, modality এবং clinical evidence support করা।
+
+উদাহরণ:
+- Lung
+- Liver
+- Kidney
+- Pancreas
+- Breast
+- Thyroid
+- Colon
+- Brain
+- Ovary
+- Prostate
+- Blood cancers
+- এবং future-এ আরও
+
+Pan-cancer মানে “100% সব cancer detect করতে পারবে” এমন claim করা হবে না।
+
+7. One AI Outside, Many Models Inside
+=====================================
+User শুধু OncoAegis AI দেখবে।
+
+ভেতরে থাকবে:
+Universal Detector
+→ Anatomy Router
+→ Specialist Model Router
+→ Cancer-specific Models
+→ Fusion
+→ Unified Result
+
+Example CT:
+CT Chest
+→ Lung pipeline
+→ Lung lesion detector
+→ Lung segmentation
+→ Lung specialist classifier
+
+Example Ultrasound:
+Ultrasound
+→ Organ recognition
+→ Breast/Thyroid/Liver/etc.
+→ Relevant specialist model
+
+8. Imaging-Detectable vs Document-Based Cancer
+==============================================
+A) Imaging-based
+CT / Ultrasound / MRI / future imaging
+→ Computer Vision Models
+→ Detection / Segmentation / Classification / Analysis
+
+B) Document/clinical-evidence based
+Pathology / Biopsy / Blood report / Bone marrow report / Clinical report / PDF/TXT
+→ Document Intelligence
+→ Cancer evidence extraction
+→ Structured analysis
+
+9. Cross-Modal Evidence Verification
+====================================
+Example:
+CT: Suspicious liver lesion
+Pathology: Hepatocellular carcinoma
+Clinical: AFP elevated
+
+System:
+CT Evidence + Pathology Evidence + Clinical Evidence
+→ Evidence Fusion
+→ Agreement Check
+→ Unified Cancer Profile
+
+Conflict:
+Imaging: Suggests malignant lesion
+Pathology: Benign finding
+
+Output:
+Evidence conflict detected.
+Automated definitive conclusion withheld.
+Expert review required.
+
+10. Uncertainty / Abstention Engine
+==================================
+Possible outputs:
+- high confidence
+- moderate confidence
+- low confidence
+- indeterminate
+- insufficient evidence
+- unsupported examination
+- out-of-scope
+- expert review required
+
+Important:
+“No confident finding” ≠ “Cancer absent”
+
+11. Main Modules
+================
+- Input Engine
+- Modality Router
+- Anatomy Router
+- Universal Imaging Engine
+- CT Engine
+- Ultrasound Engine
+- Document Engine
+- Specialist Cancer Models
+- Model Registry
+- Cancer Capability Registry
+- Evidence Fusion Engine
+- Cross-Modal Verification
+- Uncertainty Engine
+- Safety Engine
+- Medical Reasoning Layer
+- Database
+- Case History
+- Premium Frontend
+
+12. Planned Technology Stack
+============================
+Backend:
+- Python 3.12.10
+- FastAPI
+- Pydantic
+- PyTorch
+- MONAI
+- pydicom
+- SimpleITK
+- nibabel
+- OpenCV
+- scikit-image
+- NumPy
+- SciPy
+- Pandas
+- Pillow
+- PyMuPDF
+- FAISS
+- SQLAlchemy
+
+Deep Learning:
+- PyTorch
+- MONAI
+- nnU-Net
+- MedSAM / MedSAM2
+- UNet
+- UNETR
+- Swin UNETR
+- ResNet
+- EfficientNet
+- Vision Transformer
+- Swin Transformer
+- custom models when needed
+
+Document / Medical Language:
+- Medical NLP
+- medical VLM/LLM
+- MedGemma-type medical reasoning model
+- embeddings + RAG
+- structured extraction
+
+Frontend Later:
+- React / Next.js
+- Tailwind CSS
+- Framer Motion
+- Three.js / React Three Fiber
+- OHIF medical image viewer
+
+13. UI Design Direction
+=======================
+Visual identity:
+- no navy blue
+- deep charcoal / near-black background
+- emerald green
+- teal green
+- mint glow
+- medical-tech futuristic aesthetic
+- premium glassmorphism
+- smooth transitions
+- AI processing animations
+- scan-line effects
+- lesion highlight animation
+- animated logo
+- animated AI core/orb
+- professional medical viewer
+
+UI chatbot-like হবে না।
+
+14. Development Flow — LOCKED
+=============================
+1. Foundation
+2. Dataset Registry
+3. Universal Input Engine
+4. Modality Router
+5. Anatomy Router
+6. Universal CT Engine
+7. Universal Ultrasound Engine
+8. Specialist Cancer Model Registry
+9. Document Intelligence
+10. Multimodal Fusion
+11. Cross-Modal Evidence Verification
+12. Uncertainty/Safety
+13. Medical Reasoning
+14. Unified Result System
+15. Premium Animated UI
+16. Testing
+17. Deployment
+
+15. Training Strategy
+=====================
+সব model zero থেকে train করা হবে না।
+
+Strong Pretrained Model
+→ Relevant Medical Dataset
+→ Fine-Tuning
+→ Validation
+→ Specialist Model Registry
+
+Where useful:
+- custom CNN
+- 3D CNN
+- UNet
+- UNETR
+- Swin UNETR
+- Transformer
+- multimodal fusion network
+
+16. Local Hardware
+==================
+- GPU: NVIDIA GeForce RTX 3050 6GB Laptop GPU
+- CUDA: 12.6
+- PyTorch: 2.14.0+cu126
+- CUDA available: True
+- Python: 3.12.10
+
+Training optimization:
+- mixed precision
+- FP16
+- patch-based 3D training
+- small batches
+- gradient accumulation
+- transfer learning
+- checkpointing
+- Kaggle/Colab free GPU fallback when needed
+
+17. Current Project Location
+============================
+U:\OncoAegis_AI
+
+Virtual environment:
+U:\OncoAegis_AI\.venv
+
+Activation:
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\.venv\Scripts\Activate.ps1
+
+18. Current Project Structure
+=============================
+OncoAegis_AI/
+├── app/
+│   ├── main.py
+│   ├── api/
+│   ├── core/
+│   ├── schemas/
+│   ├── models/
+│   ├── imaging/
+│   │   ├── ct/
+│   │   └── ultrasound/
+│   ├── documents/
+│   ├── specialists/
+│   └── database/
+├── datasets/
+├── training/
+├── evaluation/
+├── tests/
+└── frontend/
+
+19. What Has Already Been Completed
+==================================
+Environment:
+- VS Code project opened
+- Python 3.12.10 verified
+- .venv created
+- .venv activated successfully
+- GPU verified
+- RTX 3050 6GB detected
+- CUDA working
+- PyTorch CUDA build installed
+
+Core backend:
+FastAPI backend created.
+
+Endpoints:
+GET /
+GET /health
+GET /capabilities
+POST /analyze/input
+
+Backend:
+http://127.0.0.1:8000
+
+Swagger:
+http://127.0.0.1:8000/docs
+
+20. Core Files Already Created
+==============================
+app/main.py
+app/core/router.py
+app/core/input_inspector.py
+app/core/capability_registry.py
+app/models/base.py
+app/schemas/results.py
+
+21. Input Inspector Status
+==========================
+Supports:
+- .dcm
+- .pdf
+- .txt
+- .png
+- .jpg
+- .jpeg
+- .bmp
+- .webp
+- .nii
+- .nii.gz
+
+Current logic:
+DICOM → metadata inspection → CT/MRI/US detection
+PDF → text extraction → page count → OCR-needed detection
+TXT → clinical text
+JPG/PNG → medical image candidate → vision routing required
+NIfTI → medical volume candidate
+
+Important:
+JPG/PNG automatically ultrasound হিসেবে assume করা হবে না।
+
+22. PDF Inspector Test — COMPLETE
+================================
+Test file:
+Naw.pdf
+
+Result:
+{
+  "filename": "Naw.pdf",
+  "file_size_bytes": 1109515,
+  "inspection": {
+    "input_type": "pdf_document",
+    "detected_modality": "DOCUMENT",
+    "page_count": 3,
+    "text_characters": 34,
+    "average_text_characters_per_page": 11.33,
+    "needs_ocr": true
+  },
+  "status": "input_inspected",
+  "next_stage": "medical_router"
+}
+
+Milestone 3A = COMPLETE
+
+23. Dataset Strategy
+====================
+Multiple dataset registry থাকবে।
+
+Initial datasets:
+
+DeepLesion
+Purpose:
+- universal CT lesion detection
+- multiple body regions
+- lesion localization
+Important: benign vs malignant reliable label নয়।
+DeepLesion = lesion detector, NOT universal cancer classifier.
+
+FLARE
+Purpose:
+- pan-cancer CT lesion segmentation
+- 3D segmentation
+- multi-organ lesion segmentation
+
+BUSI
+Purpose:
+- breast ultrasound
+- normal / benign / malignant
+- segmentation masks
+- initial ultrasound pipeline
+
+TCIA later:
+- lung
+- liver
+- kidney
+- pancreas
+- colorectal
+- ovarian
+- prostate
+- breast
+- pathology
+- multimodal cohorts
+
+TCGA/GDC later:
+- clinical cancer data
+- diagnosis
+- stage
+- biomarkers
+- structured cancer metadata
+
+24. Dataset Folder Strategy
+===========================
+datasets/
+├── registry/
+├── universal_ct/
+│   ├── deeplesion/
+│   └── flare/
+├── ultrasound/
+│   ├── busi/
+│   └── future/
+├── specialist_ct/
+│   ├── lung/
+│   ├── liver/
+│   ├── kidney/
+│   ├── pancreas/
+│   └── ...
+├── clinical/
+└── multimodal/
+
+সব dataset একসাথে download করা হবে না।
+
+25. Next Exact Step
+===================
+Resume করলে next কাজ:
+DATASET REGISTRY তৈরি।
+
+First registry entries:
+- DeepLesion
+- FLARE
+- BUSI
+
+প্রতিটা entry-তে থাকবে:
+- dataset name
+- source
+- modality
+- organ coverage
+- cancer/lesion purpose
+- annotation type
+- expected size
+- license/access
+- intended model
+- local path
+- download status
+- preprocessing status
+
+তারপর decide করা হবে কোন dataset প্রথম download করা হবে।
+
+26. After Dataset Registry
+==========================
+Milestone 3B — Real DICOM Series Engine
+
+Goal:
+DICOM folder
+→ Read all slices
+→ Check same series
+→ Sort slices
+→ Build full 3D volume
+→ Pixel spacing / Slice spacing / Orientation / Body region / Study metadata
+→ Ready for AI
+
+Target output:
+OncoAegis DICOM Engine
+Modality: CT
+Series slices: 187
+Volume shape: (187, 512, 512)
+Body region: CHEST
+Pixel spacing: ...
+Slice spacing: ...
+3D volume: READY
+
+27. Future Specialist Model Registry
+====================================
+lung_cancer:
+    CT:
+        detector
+        segmenter
+        classifier
+
+liver_cancer:
+    CT:
+        detector
+        segmenter
+        classifier
+    ultrasound:
+        detector
+        segmenter
+
+breast_cancer:
+    ultrasound:
+        detector
+        segmenter
+        classifier
+
+thyroid_cancer:
+    ultrasound:
+        detector
+        segmenter
+        classifier
+
+leukemia:
+    documents:
+        pathology
+        blood reports
+        bone marrow reports
+
+28. Unified Result Structure
+============================
+Final result include করবে:
+- Input modality
+- Body region
+- Organ
+- Detected lesions
+- Lesion count
+- Location
+- Size
+- Volume
+- Segmentation
+- Classification
+- Cancer risk
+- Specialist model
+- Imaging evidence
+- Document evidence
+- Agreement
+- Conflicts
+- Confidence
+- Uncertainty
+- Final structured analysis
+
+29. Future Follow-Up Analysis
+=============================
+Previous CT + Current CT
+→ Registration
+→ Same lesion tracking
+→ Size change
+→ Volume change
+→ New lesions
+→ Possible progression
+→ Possible response
+
+30. Branding
+============
+Project name:
+OncoAegis AI
+
+Full description:
+OncoAegis AI — An Adaptive Multimodal Cancer Detection and Analysis Assistant
+
+Tagline:
+One Intelligence. Multiple Modalities. Across Cancer.
+
+Visual identity:
+- Charcoal black
+- Emerald green
+- Teal green
+- Mint glow
+- Animated medical-tech logo
+
+Logo concept:
+- Protective shield
+- AI neural network
+- medical scan/radar
+- subtle oncology symbolism
+
+Generic medical cross avoid করা হবে।
+
+31. Important Project Rules
+===========================
+1. Old Ki67 coursework is completely separate.
+2. Old coursework code/data is not foundation for OncoAegis.
+3. One step complete and verified before next major milestone.
+4. Do not randomly change architecture.
+5. Detection and analysis both remain mandatory.
+6. Do not use one generic LLM as cancer detector.
+7. Actual imaging detection comes from medical CV models.
+8. Medical LLM/VLM helps reasoning/document understanding/fusion.
+9. Specialist models remain modular.
+10. Unsupported cases must not be guessed.
+11. Confidence thresholds must come from validation, not arbitrary numbers.
+12. Clinical claims must remain conservative.
+13. Architecture must scale to many cancer types.
+14. Frontend comes after core AI pipeline, but branding direction is already locked.
+15. User should never have to manually select dozens of internal models.
+
+32. Resume Prompt for Future Chat
+================================
+Continue my OncoAegis AI project from the saved master plan. Do not redesign the architecture. We already completed environment setup, GPU/CUDA/PyTorch setup, FastAPI core, capability registry, model base interface, universal input inspector, and PDF OCR-needed detection. Milestone 3A is complete. Continue from Dataset Registry planning for DeepLesion, FLARE and BUSI, then proceed to Milestone 3B DICOM series loader. Work step-by-step in manageable milestones, not tiny one-command steps and not huge overwhelming batches.
+
+END OF MASTER PLAN

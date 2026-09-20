@@ -1,0 +1,352 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#eff8fd" />
+    <meta
+      name="description"
+      content="Onco Aegis AI provides clear, source-aware cancer information for education and discussion with a care team."
+    />
+    <title>Onco Aegis AI &mdash; Cancer information, made clearer</title>
+    <link rel="stylesheet" href="/app/assets/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient--one" aria-hidden="true"></div>
+    <div class="ambient ambient--two" aria-hidden="true"></div>
+
+    <div class="app-shell" id="app-shell">
+      <header class="site-header">
+        <a class="brand" href="/app" aria-label="Onco Aegis AI home">
+          <span class="brand-symbol" aria-hidden="true"><span class="brand-core"><img src="/app/assets/assets/onco-aegis-mark.png" alt="" /></span><i class="logo-spark logo-spark--one"></i><i class="logo-spark logo-spark--two"></i></span>
+          <span class="brand-copy">
+            <strong>Onco Aegis AI</strong>
+            <small>cancer clarity, with care</small>
+          </span>
+        </a>
+        <div class="header-actions">
+          <span class="service-status" id="service-status">
+            <span class="status-dot status-dot--amber" aria-hidden="true"></span>
+            Checking guide
+          </span>
+          <button class="history-button" id="open-history" type="button" hidden>
+            <span class="history-button-icon" aria-hidden="true">↶</span>
+            <span>History</span>
+          </button>
+          <button class="history-button" id="refresh-workspace" type="button" hidden><span class="history-button-icon" aria-hidden="true">↻</span><span>Refresh</span></button>
+          <button class="ghost-button" id="open-auth" type="button">Sign in</button>
+          <button class="user-button" id="user-button" type="button" hidden>
+            <span class="user-avatar" id="user-avatar">OA</span>
+            <span id="user-label">Account</span>
+          </button>
+        </div>
+      </header>
+
+      <aside class="history-panel" id="history-panel" hidden aria-label="Your saved chats">
+        <div class="history-panel-heading">
+          <div>
+            <span class="footer-label">Private workspace</span>
+            <h2>Your chats</h2>
+          </div>
+          <button class="history-close" id="close-history" type="button" aria-label="Close chat history">&times;</button>
+        </div>
+        <button class="new-chat-button" id="new-chat" type="button"><span>+</span> New chat</button>
+        <button class="delete-history-button" id="delete-selected-history" type="button" disabled>Delete selected</button>
+        <div class="history-list" id="history-list" aria-live="polite"></div>
+        <p class="history-empty" id="history-empty">Your signed-in questions and research summaries will appear here.</p>
+        <p class="history-privacy">Saved to your account only. Image thumbnails are saved privately with the result; original medical files are never stored.</p>
+      </aside>
+
+      <main>
+        <section class="access-gateway" id="access-gateway" aria-labelledby="gateway-title">
+          <div class="gateway-copy"><span class="eyebrow"><span class="eyebrow-dot"></span> Private oncology workspace</span><h1 id="gateway-title">Onco Aegis AI</h1><p>One secure place to ask cancer questions, organise reports, and run research image reviews with your saved history.</p><div class="gateway-points"><span>Personal chat history</span><span>Image & report workspace</span><span>English & বাংলা support</span></div></div>
+          <aside class="gateway-signin"><img src="/app/assets/assets/onco-aegis-mark.png" alt="Onco Aegis AI mark" /><span>WELCOME TO YOUR WORKSPACE</span><h2>Sign in to continue</h2><p>Your saved conversations, file previews and research summaries stay tied to your account.</p><button class="ask-button" id="gateway-signin" type="button"><span>Sign in or create account</span><span class="button-arrow">↗</span></button></aside>
+        </section>
+        <section class="hero" id="workspace" aria-labelledby="hero-title" hidden>
+          <div class="hero-copy reveal">
+            <div class="eyebrow"><span class="eyebrow-dot"></span> A calmer way to learn</div>
+            <h1 id="hero-title">Ask about any cancer.<br /><em>Understand the next question.</em></h1>
+            <p>
+              Get a clear, evidence-aware starting point about symptoms, tests,
+              treatment, prevention, and the words in a report &mdash; without turning
+              general information into a diagnosis.
+            </p>
+            <div class="hero-proof">
+              <span><i class="proof-check">&#10003;</i> Plain-language answers</span>
+              <span><i class="proof-check">&#10003;</i> Trusted references</span>
+              <span><i class="proof-check">&#10003;</i> Expert-review boundary</span>
+            </div>
+            <div class="hero-signal" aria-label="Onco Aegis AI workspace highlights">
+              <div><strong>One calm workspace</strong><span>Ask, attach, continue</span></div>
+              <i></i>
+              <div><strong>9 image routes</strong><span>Research-ready pathways</span></div>
+              <i></i>
+              <div><strong>Bangla ready</strong><span>Answers in your language</span></div>
+            </div>
+          </div>
+
+          <div class="assistant-wrap reveal reveal--delay">
+            <div class="assistant-orbit" aria-hidden="true"><span></span><span></span><span></span></div>
+            <section class="assistant-card" aria-labelledby="assistant-title">
+              <div class="assistant-topline">
+                <div class="assistant-identity">
+                  <span class="mini-mark" aria-hidden="true"><img src="/app/assets/assets/onco-aegis-mark.png" alt="" /></span>
+                  <div>
+                    <strong id="assistant-title">Onco Aegis AI guide</strong>
+                    <span>Educational information, thoughtfully framed</span>
+                  </div>
+                </div>
+                  <div class="assistant-statuses">
+                    <span class="context-badge">Evidence aware</span>
+                    <span class="safe-badge"><span></span> Safety on</span>
+                  </div>
+              </div>
+
+              <form id="question-form" class="question-form" novalidate>
+                <label class="field-group">
+                  <span class="field-label">Cancer or topic</span>
+                  <input
+                    id="cancer-topic"
+                    name="cancer"
+                    maxlength="120"
+                    autocomplete="off"
+                    placeholder="e.g. breast cancer, lymphoma, thyroid"
+                    required
+                  />
+                </label>
+
+                <div class="prompt-row" aria-label="Suggested questions">
+                  <button class="prompt-chip" type="button" data-prompt="What are the common symptoms and risk factors?">Symptoms</button>
+                  <button class="prompt-chip" type="button" data-prompt="How is it usually tested and diagnosed?">Tests</button>
+                  <button class="prompt-chip" type="button" data-prompt="What treatment approaches are commonly discussed?">Treatment</button>
+                  <button class="prompt-chip" type="button" data-prompt="What can lower risk and support prevention?">Prevention</button>
+                </div>
+
+                <label class="field-group">
+                  <span class="field-label">What would you like to know?</span>
+                  <textarea
+                    id="question-text"
+                    name="question"
+                    maxlength="2400"
+                    rows="4"
+                    placeholder="Ask in your own words. You can write in English or Bangla."
+                    required
+                  ></textarea>
+                  <span class="character-count" id="character-count">0 / 2400</span>
+                </label>
+
+                <div class="chat-attachment-row">
+                  <label class="chat-attach" for="chat-files">
+                    <input id="chat-files" type="file" accept="image/*,.dcm,.dicom,.ima,.nii,.nii.gz,.npy,.csv" />
+                    <span class="attach-icon" aria-hidden="true">+</span>
+                    <span>Attach image</span>
+                  </label>
+                  <label class="chat-attach" for="chat-document">
+                    <input id="chat-document" type="file" accept=".pdf,.txt,application/pdf,text/plain" />
+                    <span class="attach-icon" aria-hidden="true">+</span>
+                    <span>Attach report</span>
+                  </label>
+                  <select id="chat-model" aria-label="Image analysis model">
+                    <option value="">Text question only</option>
+                    <option value="busi_breast_segmentation">Breast ultrasound / segment</option>
+                    <option value="busi_breast_classifier">Breast ultrasound / classify</option>
+                    <option value="tn3k_thyroid_nodule_segmentation">Thyroid ultrasound / segment</option>
+                    <option value="isic2016_skin_lesion_segmentation">Skin dermoscopy / segment</option>
+                    <option value="msd_brain_tumor_segmentation">Brain MRI / segment</option>
+                    <option value="luna16_lung_segmentation">Lung CT / segment</option>
+                    <option value="luna16_nodule_detector">Lung CT / nodule detection</option>
+                    <option value="ircadb01_liver_tumor_segmentation">Liver CT / segment</option>
+                    <option value="msd_pancreas_segmentation">Pancreas CT / segment</option>
+                    <option value="msd_pancreas_tumor_segmentation">Pancreas CT / tumor-region analysis</option>
+                    <option value="msd_colon_tumor_segmentation">Colon CT / tumor-region analysis</option>
+                    <option value="cnmc2019_all_cell_classifier">Blood microscopy / classify cells</option>
+                  </select>
+                </div>
+                <div class="chat-file-list" id="chat-file-list" aria-live="polite"></div>
+                <div class="chat-file-list" id="chat-document-list" aria-live="polite"></div>
+                <p class="upload-guidance" id="upload-guidance">Choose a route to see the best supported file type.</p>
+
+                <div class="coverage-row" aria-label="Supported image areas">
+                  <span class="coverage-label">Image routes</span>
+                  <button class="coverage-chip" type="button" data-coverage-model="busi_breast_segmentation">Breast</button>
+                  <button class="coverage-chip" type="button" data-coverage-model="msd_brain_tumor_segmentation">Brain</button>
+                  <button class="coverage-chip" type="button" data-coverage-model="luna16_lung_segmentation">Lung</button>
+                  <button class="coverage-chip" type="button" data-coverage-model="ircadb01_liver_tumor_segmentation">Liver</button>
+                  <button class="coverage-chip" type="button" data-coverage-model="msd_pancreas_segmentation">Pancreas</button>
+                  <button class="coverage-chip" type="button" data-coverage-model="msd_colon_tumor_segmentation">Colon</button>
+                  <button class="coverage-chip" type="button" data-coverage-model="tn3k_thyroid_nodule_segmentation">Thyroid</button>
+                  <button class="coverage-chip" type="button" data-coverage-model="cnmc2019_all_cell_classifier">Blood</button>
+                  <button class="coverage-chip" type="button" data-coverage-model="isic2016_skin_lesion_segmentation">Skin</button>
+                </div>
+
+                <div class="form-bottom-row">
+                  <div class="language-switch" role="group" aria-label="Answer language">
+                    <span>Answer in</span>
+                    <button class="language-button is-active" type="button" data-language="en">English</button>
+                    <button class="language-button" type="button" data-language="bn">&#2476;&#2494;&#2434;&#2482;&#2494;</button>
+                  </div>
+                  <button class="ask-button" id="ask-button" type="submit">
+                    <span>Ask Onco Aegis AI</span><span class="button-arrow" aria-hidden="true">&#8599;</span>
+                  </button>
+                </div>
+                <p class="form-error" id="question-error" role="alert" aria-live="polite"></p>
+              </form>
+
+              <div class="loading-state" id="loading-state" hidden aria-live="polite">
+                <div class="loading-orb"><span></span><span></span><span></span></div>
+                <div><strong id="loading-title">Reading your question</strong><p id="loading-copy">Building a careful, general explanation...</p></div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="response-section" id="response-section" hidden aria-labelledby="response-title">
+          <div class="section-heading reveal">
+            <div>
+              <div class="eyebrow"><span class="eyebrow-dot"></span> Your explanation</div>
+              <h2 id="response-title">A clearer starting point</h2>
+            </div>
+            <span class="response-mode" id="response-mode">Safe educational guide</span>
+          </div>
+          <button class="back-workspace-button" id="back-workspace" type="button">← Back to workspace</button>
+
+          <div class="conversation-thread" id="conversation-thread" hidden aria-label="Conversation history"></div>
+
+          <article class="answer-card reveal" id="answer-card">
+            <div class="answer-card-top">
+              <span class="answer-topic" id="answer-topic">Topic</span>
+              <span class="answer-id" id="answer-id">Reference ready</span>
+            </div>
+            <p class="answer-lead" id="answer-lead"></p>
+            <div class="section-grid" id="section-grid"></div>
+            <div class="urgent-note" id="urgent-note">
+              <span class="urgent-icon" aria-hidden="true">!</span>
+              <div><strong>When to get prompt help</strong><p id="urgent-copy"></p></div>
+            </div>
+            <div class="answer-footer">
+              <div>
+                <span class="footer-label">Useful follow-up questions</span>
+                <div class="follow-up-list" id="follow-up-list"></div>
+              </div>
+              <button class="outline-button" id="ask-another" type="button">Ask another <span>&#8599;</span></button>
+            </div>
+          </article>
+
+          <div class="sources-card reveal reveal--delay">
+            <div>
+              <span class="footer-label">Reference shelf</span>
+              <h3>Start with these trusted sources</h3>
+            </div>
+            <div class="source-list" id="source-list"></div>
+          </div>
+
+          <p class="disclaimer">
+            Onco Aegis AI is an educational guide. It cannot diagnose cancer, interpret
+            an individual scan, or replace a qualified clinician. Never start or stop
+            treatment based only on this response.
+          </p>
+        </section>
+
+        <section class="analysis-section reveal" id="analysis-section" aria-labelledby="analysis-title" hidden>
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow"><span class="eyebrow-dot"></span> Image workspace</div>
+              <h2 id="analysis-title">Explore an image with a specialist model</h2>
+              <p class="section-intro">Upload a supported research image and receive a structured, review-ready analysis summary.</p>
+            </div>
+            <span class="response-mode">Research workflow</span>
+          </div>
+
+          <div class="analysis-layout">
+            <form class="analysis-card analysis-form" id="analysis-form" novalidate>
+              <div class="analysis-card-heading">
+                <div>
+                  <span class="footer-label">Step 1</span>
+                  <h3>Choose an analysis</h3>
+                </div>
+                <span class="analysis-lock" id="analysis-access">Sign in required</span>
+              </div>
+
+              <label class="field-group">
+                <span class="field-label">Specialist model</span>
+                <select id="analysis-model" name="model_id">
+                  <option value="busi_breast_segmentation">Breast ultrasound segmentation</option>
+                  <option value="busi_breast_classifier">Breast ultrasound classification</option>
+                  <option value="isic2016_skin_lesion_segmentation">Skin lesion segmentation</option>
+                  <option value="msd_brain_tumor_segmentation">Brain MRI segmentation</option>
+                  <option value="luna16_lung_segmentation">Lung CT segmentation</option>
+                  <option value="luna16_nodule_detector">Lung CT nodule detection</option>
+                </select>
+              </label>
+
+              <div class="analysis-meta" id="analysis-meta">Ultrasound / Breast / Segmentation</div>
+
+              <label class="upload-zone" id="upload-zone" for="analysis-files">
+                <input id="analysis-files" name="files" type="file" accept="image/*,.dcm,.dicom,.ima,.nii,.nii.gz,.npy,.csv" />
+                <span class="upload-icon" aria-hidden="true">+</span>
+                <strong>Drop images here or browse</strong>
+                <span>Upload JPG/PNG images, DICOM, NIfTI, NumPy, or supported CSV files</span>
+              </label>
+              <div class="file-list" id="analysis-file-list" aria-live="polite"></div>
+
+              <button class="ask-button ask-button--full" id="analysis-submit" type="submit">
+                <span>Run image analysis</span><span class="button-arrow" aria-hidden="true">&#8599;</span>
+              </button>
+              <p class="form-error" id="analysis-error" role="alert" aria-live="polite"></p>
+              <p class="analysis-footnote">This is research and decision-support output. It does not confirm cancer and requires expert review.</p>
+            </form>
+
+            <article class="analysis-card analysis-result-card" id="analysis-result-card">
+              <div class="analysis-card-heading">
+                <div>
+                  <span class="footer-label">Step 2</span>
+                  <h3>Analysis result</h3>
+                </div>
+                <span class="analysis-status" id="analysis-status">Waiting for an upload</span>
+              </div>
+              <div class="analysis-empty" id="analysis-empty">
+                <span class="result-pulse" aria-hidden="true"></span>
+                <strong>Your structured result will appear here</strong>
+                <p>The model output, limitations, provenance, and review notes will stay together in one place.</p>
+              </div>
+              <div class="analysis-result" id="analysis-result" hidden></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="feature-strip" aria-label="Onco Aegis AI principles">
+          <article class="feature-card reveal"><span class="feature-number">01</span><div><h3>Start anywhere</h3><p>Use a cancer name, a symptom, or a question from a report.</p></div></article>
+          <article class="feature-card reveal reveal--delay"><span class="feature-number">02</span><div><h3>See the context</h3><p>Answers separate general patterns from personal medical decisions.</p></div></article>
+          <article class="feature-card reveal reveal--delay-2"><span class="feature-number">03</span><div><h3>Bring it to care</h3><p>Turn the follow-up prompts into a better conversation with your team.</p></div></article>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <span>Onco Aegis AI</span><span class="footer-separator">&middot;</span><span>Research-aware by design</span>
+        <span class="footer-right">No identifying information needed for a general question.</span>
+      </footer>
+    </div>
+
+    <div class="modal-backdrop" id="auth-modal" hidden>
+      <section class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+        <button class="modal-close" id="close-auth" type="button" aria-label="Close sign in">&times;</button>
+        <div class="modal-heading"><span class="mini-mark" aria-hidden="true"><img src="/app/assets/assets/onco-aegis-mark.png" alt="" /></span><div><div class="eyebrow">Your private workspace</div><h2 id="auth-title">Welcome back</h2><p id="auth-subtitle">Save your account session for a more personal workspace.</p></div></div>
+        <div class="auth-tabs" role="tablist" aria-label="Account action"><button class="auth-tab is-active" data-auth-mode="login" type="button">Sign in</button><button class="auth-tab" data-auth-mode="register" type="button">Create account</button></div>
+        <form id="auth-form" novalidate>
+          <label class="field-group" id="username-field" hidden><span class="field-label">Username <small>optional</small></span><input id="username" autocomplete="username" placeholder="Your name" /></label>
+          <label class="field-group"><span class="field-label">Email address</span><input id="email" type="email" autocomplete="email" placeholder="you@example.com" required /></label>
+          <label class="field-group"><span class="field-label">Password</span><input id="password" type="password" autocomplete="current-password" placeholder="At least 8 characters" required /></label>
+          <button class="ask-button ask-button--full" id="auth-submit" type="submit"><span>Sign in</span><span class="button-arrow">&#8599;</span></button>
+          <p class="form-error" id="auth-message" role="alert" aria-live="polite"></p>
+        </form>
+        <div class="auth-divider"><span>or continue with</span></div>
+        <div class="provider-row"><button class="provider-button" data-provider="google" type="button"><span class="provider-icon provider-icon--google">G</span><span>Google</span><small>Checking...</small></button><button class="provider-button" data-provider="apple" type="button"><span class="provider-icon provider-icon--apple">A</span><span>Apple</span><small>Checking...</small></button></div>
+        <p class="auth-note">Provider sign-in becomes available after server credentials are configured. General questions work without an account.</p>
+      </section>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="/app/assets/app.js" defer></script>
+  </body>
+</html>
+

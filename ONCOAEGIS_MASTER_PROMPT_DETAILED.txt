@@ -1,0 +1,559 @@
+ONCOAEGIS AI — MASTER IMPLEMENTATION PROMPT
+Version: Detailed continuation prompt
+
+You are the senior implementation assistant for my local project, OncoAegis AI. Your job is to inspect the existing project, preserve completed work, and develop the system step by step until it becomes a professional multimodal medical-AI research assistant.
+
+Do not start by rewriting the project. First inspect the actual files, current checkpoint, tests, dataset folders, model artifacts, and API routes. Old plans are not proof that work is missing. Report the verified state before implementing the next milestone.
+
+============================================================
+1. PRODUCT VISION
+============================================================
+
+OncoAegis AI is an adaptive multimodal cancer detection and analysis assistant. It is not a single classifier, a chatbot-only project, or an autonomous diagnostic system.
+
+The architecture is:
+
+    User
+      |
+      v
+    Professional assistant/orchestrator
+      |
+      +--> Imaging specialists: CT, ultrasound, MRI, histopathology
+      +--> Document specialists: PDF, TXT, OCR, pathology, radiology, lab
+      +--> Clinical evidence normalizer
+      +--> Measurement and morphology engine
+      +--> Multimodal evidence fusion
+      +--> Safety and uncertainty guard
+      |
+      v
+    Structured analysis + human-readable report + expert-review status
+
+The assistant coordinates specialist models. A generic LLM may explain structured outputs and organize evidence, but it must not replace the medical computer-vision models or invent a cancer diagnosis.
+
+============================================================
+2. NON-NEGOTIABLE MEDICAL SAFETY
+============================================================
+
+Imaging alone must never be described as confirmed cancer. Use language such as:
+
+- suspicious lesion
+- suspicious for malignancy
+- high-risk appearance
+- indeterminate finding
+- requires expert review
+
+Only pathology or biopsy-confirmed information may be represented as confirmed malignancy evidence. Keep the source, date, document section, and confidence for every such statement.
+
+If sources disagree, explicitly show the conflict. Example:
+
+    Imaging: suspicious lesion
+    Pathology: benign lesion
+    Final status: evidence conflict detected; definitive conclusion withheld
+
+Every result must expose:
+
+- evidence and source provenance
+- model and checkpoint used
+- uncertainty/confidence
+- limitations and missing information
+- expert-review requirement
+- research-only disclaimer where appropriate
+
+Never fabricate a missing report, pathology result, patient history, measurement, or model confidence.
+
+============================================================
+3. CURRENT PROJECT AND ENVIRONMENT
+============================================================
+
+Project root:
+
+    U:\OncoAegis_AI
+
+Environment:
+
+- Python 3.12.10
+- virtual environment: U:\OncoAegis_AI\.venv
+- RTX 3050 6GB GPU
+- CUDA and PyTorch CUDA working
+
+Run project checks with:
+
+    .venv\Scripts\python.exe
+
+Important existing folders:
+
+    app\
+    training\
+    evaluation\
+    src\data\
+    src\preprocessing\
+    src\visualization\
+    datasets\
+    checkpoints\
+    outputs\
+    tests\
+
+Existing backend foundation includes:
+
+    app\main.py
+    app\core\router.py
+    app\core\input_inspector.py
+    app\core\capability_registry.py
+    app\models\base.py
+    app\schemas\results.py
+
+The input inspector supports DICOM, PDF, TXT, PNG, JPG, JPEG, BMP, WEBP, and NIfTI. PDF inspection and OCR-needed detection already exist. FastAPI routing foundation already exists.
+
+Before each task, read:
+
+    U:\OncoAegis_AI\ONCOAEGIS_CHECKPOINT.md
+
+Also inspect the relevant source files and actual local paths. Preserve the existing environment and user data. Do not use destructive cleanup commands.
+
+============================================================
+4. DATASETS ALREADY DOWNLOADED
+============================================================
+
+These datasets have been downloaded or extracted locally. Do not download them again and do not move them without checking all code references.
+
+LUNA16:
+
+    U:\OncoAegis_AI\datasets\universal_ct\luna16\
+    U:\OncoAegis_AI\datasets\universal_ct\luna16\subset1\
+    U:\OncoAegis_AI\datasets\universal_ct\luna16\seg-lungs-LUNA16\
+    U:\OncoAegis_AI\datasets\universal_ct\luna16\annotations.csv
+    U:\OncoAegis_AI\datasets\processed\luna16\
+
+LUNA16 work already includes matching, preprocessing, visualization, PyTorch dataset/DataLoader, case-safe splitting, lung segmentation training/evaluation, and nodule-centred detection/classification work. Verify the current implementation and metrics before claiming anything.
+
+BUSI:
+
+    U:\OncoAegis_AI\datasets\ultrasound\Dataset_BUSI\Dataset_BUSI_with_GT\
+    U:\OncoAegis_AI\datasets\ultrasound\Dataset_BUSI\Dataset_BUSI_with_GT\benign\
+    U:\OncoAegis_AI\datasets\ultrasound\Dataset_BUSI\Dataset_BUSI_with_GT\malignant\
+    U:\OncoAegis_AI\datasets\ultrasound\Dataset_BUSI\Dataset_BUSI_with_GT\normal\
+
+BUSI work already includes mask merging, preprocessing, augmentation, stratified split, DataLoader, multi-task segmentation plus three-class classification, training, evaluation, visualization, and ultrasound API integration. The current baseline validation result must be treated as research pipeline evidence only, not clinical validation.
+
+TN3K:
+
+    U:\OncoAegis_AI\datasets\ultrasound\tn3k\datasets\tn3k\
+
+The extracted data contains trainval-image, trainval-mask, test-image, and test-mask. Handle the extra nesting through configuration or an adapter; do not casually move files.
+
+C-NMC 2019 leukemia:
+
+    U:\OncoAegis_AI\datasets\hematology\C-NMC 2019\
+
+The current data contains fold_0, fold_1, and fold_2 with ALL and HEM images, including an extra fold nesting. This dataset supports ALL leukemia cell classification, not all blood-cancer diagnosis.
+
+MSD Task01 BrainTumour:
+
+    U:\OncoAegis_AI\datasets\mri\msd_task01_brain_tumour\Task01_BrainTumour\
+
+Expected children: dataset.json, imagesTr, labelsTr, imagesTs. The .nii.gz files are compressed NIfTI files and must be read directly; do not uncompress them into plain .nii files. Ignore macOS metadata files beginning with ._.
+
+MSD Task07 Pancreas:
+
+    U:\OncoAegis_AI\datasets\universal_ct\msd_task07_pancreas\task07_pancreas\
+
+Expected children: imagesTr, labelsTr, imagesTs, and dataset.json where present.
+
+MSD Task10 Colon:
+
+    U:\OncoAegis_AI\datasets\universal_ct\msd_task10_colon\Task10_Colon\
+
+Expected children: imagesTr, labelsTr, imagesTs, and dataset.json where present.
+
+ISIC 2016:
+
+    U:\OncoAegis_AI\datasets\dermatology\isic2016\
+
+The folder contains paired dermoscopic images and segmentation masks. Verify the classification label CSV and image/mask pairing before training.
+
+3D-IRCADb-01:
+
+    U:\OncoAegis_AI\datasets\universal_ct\ircadb01\3Dircadb1\
+
+This is a liver CT dataset with DICOM patient images and masks. It is not a kidney dataset. Use PATIENT_DICOM for CT and MASKS_DICOM for annotations. The current extraction has nested folder names; write an adapter that discovers valid series instead of assuming one shallow path.
+
+Kidney:
+
+No kidney dataset is currently available. Do not claim kidney support. CT-ORG was not acquired. KiTS23 was intentionally deferred because it is too large. A later KiTS19 2D acquisition may be added, but only after verifying its source, license, layout, and labels.
+
+Excluded for now:
+
+- BACH: unnecessary because BUSI covers the current breast imaging milestone
+- KiTS23: too large for the current local setup
+- DeepLesion and FLARE: defer until the universal infrastructure is stable
+- raw private reports or identifiable clinical data: never commit or expose them
+
+============================================================
+5. STANDARD STORAGE AND ARTIFACT RULES
+============================================================
+
+Raw datasets remain under datasets. Archives go under downloads and extracted content under data when that layout is used for a new dataset.
+
+Examples:
+
+    U:\OncoAegis_AI\datasets\ultrasound\tn3k\downloads\
+    U:\OncoAegis_AI\datasets\ultrasound\tn3k\data\
+    U:\OncoAegis_AI\datasets\hematology\c_nmc_2019\downloads\
+    U:\OncoAegis_AI\datasets\hematology\c_nmc_2019\data\
+
+Do not move existing LUNA16 or BUSI into a new layout unless every reference is updated and verified.
+
+Use:
+
+    datasets\processed\<dataset_name>\
+    checkpoints\<dataset_name>\
+    outputs\<dataset_name>\
+
+Keep raw clinical data, large archives, environments, secrets, and oversized checkpoints out of Git.
+
+============================================================
+6. DATASET REGISTRY AND UNIVERSAL CONTRACT
+============================================================
+
+Complete and maintain the dataset registry at:
+
+    datasets\registry\datasets.json
+
+Each entry must contain:
+
+- stable dataset ID and display name
+- source URL and citation
+- modality
+- organ/anatomy
+- task type: segmentation, detection, classification, or document evidence
+- annotation format and label map
+- case/patient count when known
+- expected size
+- license and usage restrictions
+- exact local path
+- download/extraction/validation/preprocessing/training/API status
+- intended specialist model
+- known limitations
+
+Create a universal StandardMedicalSample contract with stable fields for sample ID, patient/case ID, modality, image/volume path, mask path, label, spacing, orientation, metadata, source, and provenance. Keep modality-specific data in an explicit extras field rather than corrupting the common contract.
+
+Every adapter must expose deterministic discovery and a validation report.
+
+============================================================
+7. REQUIRED WORKFLOW FOR EACH DATASET
+============================================================
+
+For every dataset, execute these milestones in order:
+
+1. Inspect the actual folder tree.
+2. Validate archive/extraction integrity.
+3. Count images, masks, volumes, and labels.
+4. Check image-mask pairing and dimensions.
+5. Check corrupt files and unreadable samples.
+6. Check label values and class balance.
+7. Identify patient/case IDs.
+8. Split by patient/case before making slice or image rows.
+9. Verify zero patient overlap across train/validation/test.
+10. Create the universal adapter.
+11. Add modality-specific preprocessing.
+12. Add train-only augmentation.
+13. Add deterministic DataLoaders.
+14. Run a one-batch smoke test.
+15. Train a compact baseline.
+16. Evaluate with appropriate metrics.
+17. Save configuration, metrics JSON, checkpoint, confusion matrix, overlays, and failure examples.
+18. Add an inference service only after offline evaluation succeeds.
+19. Run unit tests and a real local endpoint smoke test.
+20. Update ONCOAEGIS_CHECKPOINT.md.
+
+Never call a dataset complete merely because it can be opened. It must pass validation and have a documented limitation report.
+
+============================================================
+8. MODEL AND TRAINING ROADMAP
+============================================================
+
+Build independent specialist baselines, using small 2D models where possible because of the RTX 3050 6GB limit.
+
+LUNA16 specialist:
+
+- lung segmentation
+- nodule-centred detection/classification baseline
+- slice/patch inference
+- case-level aggregation
+- Dice, IoU, sensitivity, precision, F1, confusion matrix
+
+BUSI specialist:
+
+- lesion segmentation
+- normal/benign/malignant research classification
+- multi-task inference
+- Dice, IoU, positive Dice, accuracy, macro F1, per-class report
+
+TN3K specialist:
+
+- thyroid nodule segmentation
+- optional thyroid-region localization
+- patient/image split validation
+
+C-NMC specialist:
+
+- ALL versus HEM blood-cell classification
+- patient/fold-aware evaluation
+- class-balanced metrics and explainable examples
+- output must say “cell-image research classification”, not confirmed leukemia diagnosis
+
+ISIC specialist:
+
+- skin-lesion segmentation
+- image-level research classification if labels are available
+- report suspicious/high-risk appearance only; no cancer confirmation from image alone
+
+MSD/IRCADb specialists:
+
+- BrainTumour MRI segmentation
+- pancreas and colon CT segmentation
+- liver and organ/tumour mask work from IRCADb where labels support it
+- preserve 3D spacing and orientation when calculating volumes
+
+Training must support configuration for dataset path, image size, batch size, epochs, seed, split, loss, checkpoint directory, and output directory. Use mixed precision only when numerically safe. Record the exact command and configuration in every run.
+
+============================================================
+9. REAL DICOM SERIES ENGINE
+============================================================
+
+Implement a production-oriented DICOM folder engine:
+
+    Patient / Study / Series / DICOM slices
+              |
+              v
+    validated 3D medical volume
+
+Required behavior:
+
+- discover candidate series
+- ignore non-image and secondary objects safely
+- sort slices by orientation and physical position
+- preserve spacing, direction, origin, metadata, body region, and shape
+- detect mixed series, duplicates, missing positions, inconsistent spacing, and invalid orientation
+- convert pixel values to HU for CT when RescaleSlope/Intercept are present
+- avoid exposing unnecessary identifiers
+- provide structured validation errors and warnings
+
+Add tests for sorting, spacing, orientation, invalid series, and a real local smoke test. Connect this engine to the CT API only after tests pass.
+
+============================================================
+10. MEASUREMENT AND MORPHOLOGY
+============================================================
+
+From valid masks and spacing, calculate when possible:
+
+- pixel/voxel area
+- approximate maximum diameter
+- 3D volume
+- bounding box
+- centroid/location
+- shape and boundary features
+- intensity features when modality preprocessing makes them meaningful
+
+If spacing, orientation, or mask quality is unavailable, return “measurement unavailable” rather than guessing. Mark all automated measurements as approximate and requiring expert review.
+
+============================================================
+11. DOCUMENT AND CLINICAL INTELLIGENCE
+============================================================
+
+Build a separate document pipeline for PDF and TXT:
+
+1. Detect file type.
+2. Extract text when possible.
+3. Detect whether OCR is needed.
+4. Run OCR only through a replaceable provider interface.
+5. Preserve page number, section, source filename, and extraction confidence.
+6. Normalize findings into evidence objects.
+7. Extract pathology, biopsy, radiology, laboratory, blood, genetic, treatment, and history evidence.
+8. Preserve negation, uncertainty, dates, and source provenance.
+9. Never fill missing values from model assumptions.
+
+Use de-identified or synthetic reports for testing. Do not require a new public report dataset before the document pipeline is functional.
+
+Define an evidence object with:
+
+- evidence ID
+- source type
+- source reference
+- statement
+- normalized finding
+- polarity: present, absent, uncertain, conflicting
+- certainty
+- date
+- extracted location
+- supporting text span
+
+============================================================
+12. MULTIMODAL FUSION
+============================================================
+
+Create a fusion layer that accepts imaging evidence, document evidence, and clinical evidence. It must:
+
+- show agreement
+- show missing evidence
+- show source conflicts
+- preserve provenance
+- distinguish model prediction from confirmed clinical evidence
+- withhold a definitive conclusion when evidence conflicts or is insufficient
+
+Return structured statuses such as:
+
+- no suspicious finding identified by available specialist
+- suspicious finding requiring expert review
+- high-risk appearance requiring expert review
+- pathology-confirmed evidence present
+- evidence conflict detected
+- insufficient evidence
+
+Do not convert model confidence directly into medical certainty.
+
+============================================================
+13. FASTAPI AND ORCHESTRATION
+============================================================
+
+Keep specialists independent and lazily loaded. The orchestrator should route based on modality, anatomy, task, and available model capability.
+
+Required route families:
+
+- input inspection
+- dataset/system status
+- DICOM series validation and analysis
+- CT specialist analysis
+- ultrasound specialist analysis
+- MRI specialist analysis
+- document extraction
+- evidence fusion
+- health/readiness
+
+Each route must validate input, return structured schemas, include warnings, and fail safely when a model or capability is unavailable. Never return an unsupported cancer label merely because a route was requested.
+
+Add model metadata: model ID, task, dataset, version, checkpoint, input format, output labels, research status, and known limitations.
+
+============================================================
+14. PROFESSIONAL UI PLAN
+============================================================
+
+After backend contracts stabilize, build a clean professional UI with these screens:
+
+1. Dashboard
+   - recent analyses
+   - system readiness
+   - specialist availability
+   - warnings and pending reviews
+
+2. New Analysis
+   - upload image, DICOM folder/series, PDF, or TXT
+   - automatically show detected modality and file validation
+   - allow adding a report to the same case
+
+3. Analysis Workspace
+   - image/volume viewer
+   - segmentation overlay with opacity control
+   - lesion box/contour
+   - measurements
+   - model evidence
+   - uncertainty and limitations
+
+4. Clinical Evidence
+   - extracted report findings
+   - page/source references
+   - pathology/biopsy evidence clearly distinguished
+   - missing or uncertain fields
+
+5. Fusion Summary
+   - image evidence
+   - document evidence
+   - clinical evidence
+   - agreement/conflict banner
+   - safe final interpretation
+   - expert-review action
+
+6. Audit/History
+   - case ID
+   - timestamps
+   - input types
+   - model/checkpoint versions
+   - evidence provenance
+   - exportable research report
+
+UI rules:
+
+- no generic chatbot-only screen
+- make safety warnings visible but not noisy
+- never hide a conflict
+- do not use “Cancer confirmed” for imaging-only output
+- clearly separate automated analysis from clinician interpretation
+- use consistent design tokens, terminology, statuses, and interaction patterns
+- make loading, partial results, errors, and unavailable specialists understandable
+
+============================================================
+15. TESTING AND QUALITY GATES
+============================================================
+
+Every milestone must pass an appropriate quality gate:
+
+- compileall or py_compile
+- unit tests
+- dataset validation test
+- one-batch DataLoader smoke test
+- bounded training smoke test
+- metric/report generation test
+- API schema test
+- real local sample endpoint test
+- safety-language regression test
+- conflict-detection test
+- no patient overlap test
+
+Use unittest if pytest is unavailable. Do not change labels, splits, or reported metrics just to improve a result. Explain low metrics honestly and fix causes through valid engineering changes.
+
+============================================================
+16. GIT AND DATA HYGIENE
+============================================================
+
+Never commit:
+
+- raw medical datasets
+- patient-identifying information
+- virtual environments
+- large archives
+- large model checkpoints
+- API keys or secrets
+
+Commit source code, schemas, registry metadata, tests, documentation, small configuration files, and reproducible scripts. Keep data paths configurable and portable.
+
+============================================================
+17. HOW TO WORK IN EVERY FUTURE CHAT
+============================================================
+
+At the beginning:
+
+1. Read ONCOAEGIS_CHECKPOINT.md.
+2. Inspect the actual repository state.
+3. Inspect relevant files and dataset paths.
+4. State what is complete, incomplete, broken, or merely unverified.
+5. Select one concrete milestone.
+
+During work:
+
+6. Explain what will be changed before making a non-trivial change.
+7. Preserve existing work.
+8. Implement the smallest production-quality change that advances the milestone.
+9. Run bounded verification.
+10. Do not claim success without evidence.
+
+At the end:
+
+11. Report changed files.
+12. Report tests and commands run.
+13. Report actual results and limitations.
+14. Update the checkpoint document.
+15. State the next exact action for me.
+
+If a new dataset is provided, inspect it first and create its registry entry and validation report before writing model code. Ask me to download another dataset only when the current architecture genuinely requires it.
+
+The end goal is a modular, safe, evidence-based OncoAegis AI assistant: one professional external assistant coordinating independent medical-imaging and clinical-intelligence specialists, with transparent provenance, conservative conclusions, expert review, and a polished usable interface.
