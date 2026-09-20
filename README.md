@@ -1,250 +1,176 @@
-# Onco Aegis AI — LUNA16 + BUSI baselines
+# Onco Aegis AI
 
-This repository now contains two reusable supervised imaging pipelines:
+Onco Aegis AI is a research-oriented cancer information and medical-imaging
+assistant. It combines a FastAPI backend, specialist inference pipelines,
+document intelligence, evidence-aware reasoning, authenticated chat history,
+and a responsive web interface.
 
-- **LUNA16:** case-safe train/validation split, on-demand 2D CT slices, binary
-  lung segmentation, U-Net training and Dice/IoU evaluation.
-- **BUSI:** class-stratified split, grayscale ultrasound loading, merged lesion
-  masks, and a shared U-Net with segmentation plus normal/benign/malignant
-  classification heads.
+The system is designed to explain findings and support discussion with a
+qualified care team. It is not a clinical diagnostic device. A model output
+never confirms malignancy by itself.
 
-The loaders normalize masks to binary values. LUNA16 CT inputs are windowed to
-`[-1000, 400] HU` and normalized to `[0, 1]`; the input is never multiplied by
-the target mask.
+## What is implemented
 
-LUNA16 also uses its local annotations.csv to create a case-separated
-nodule-vs-no-annotated-nodule slice-classification baseline. These annotations
-identify nodules; they do not provide benign/malignant pathology labels.
+- Cancer information assistant with English and Bangla responses.
+- Local email/password authentication with JWT access and refresh sessions.
+- Google and Apple OAuth-ready flows.
+- User-scoped chat history with resume, private image thumbnails and deletion.
+- PDF/TXT document intelligence for pathology, radiology and laboratory text.
+- Multimodal evidence fusion with conflict detection and clinical abstention.
+- One specialist API: `POST /analyze/specialist`.
+- Model registry, dataset registry, routing and standard analysis contracts.
+- Research-only safety fields, limitations, provenance and expert-review status.
+- Responsive Onco Aegis AI web UI at `/app`.
 
-## Prepare LUNA16 arrays
+## Specialist model catalogue
 
-From the project root:
+| Cancer area | Model | Type | Expected input | Main output |
+|---|---|---|---|---|
+| Lung | `luna16_lung_segmentation` | 2D U-Net | Preprocessed CT slice | Lung mask |
+| Lung | `luna16_nodule_detector` | 2D patch classifier | Nodule-centred CT patch | Annotated-nodule likelihood |
+| Breast | `busi_breast_segmentation` | 2D multi-task U-Net | Grayscale ultrasound image | Lesion mask and area |
+| Breast | `busi_breast_classifier` | 2D classification head | Grayscale ultrasound image | Normal/benign/malignant research class |
+| Brain | `msd_brain_tumor_segmentation` | 3D U-Net | Four-channel 3D MRI NIfTI | Tumor-region mask and voxel estimate |
+| Pancreas | `msd_pancreas_segmentation` | 3D U-Net | 3D pancreas CT volume | Pancreas and region masks |
+| Pancreas | `msd_pancreas_tumor_segmentation` | Two-stage 3D pipeline | 3D abdominal CT volume | Pancreas/tumor-region estimates |
+| Colon | `msd_colon_tumor_segmentation` | 3D U-Net | 3D abdominal colon CT volume | Tumor-region estimate |
+| Liver | `ircadb01_liver_tumor_segmentation` | Two-stage 3D pipeline | Liver CT DICOM series | Liver/tumor-region estimates |
+| Skin | `isic2016_skin_lesion_segmentation` | 2D U-Net | RGB dermoscopy image | Lesion mask and pixel area |
+| Thyroid | `tn3k_thyroid_nodule_segmentation` | 2D U-Net | Grayscale thyroid ultrasound | Nodule mask and bounding box |
+| Blood | `cnmc2019_all_cell_classifier` | 2D CNN | RGB microscopy cell image | ALL-like/HEM-like research class |
+| Blood/AML | `flowcap_aml_patient_classifier` | Structured pretrained model | Eight flow-cytometry CSV tubes | Patient/tube research scores |
 
-```powershell
-.venv\Scripts\python.exe -m src.preprocessing.ct_preprocess
-```
+The 3D models are intended for their original volume or DICOM series. The web
+input layer may accept a raster scan export for transport compatibility, but
+that path is explicitly a single-slice approximation and must not be treated
+as reliable 3D detection or clinical interpretation.
 
-## Verify data
+## Datasets represented in the project
 
-```powershell
-.venv\Scripts\python.exe -m src.data.test_dataset
-```
+- **LUNA16:** lung CT and annotated-nodule research data. The nodule route
+  identifies annotated nodule-like patches; LUNA16 does not provide pathology
+  labels for benign/malignant diagnosis.
+- **BUSI:** breast ultrasound images, masks and normal/benign/malignant
+  research classes.
+- **MSD Task01 BrainTumour:** four-channel brain MRI volumes and tumor masks.
+- **MSD Task07 Pancreas:** pancreas CT volumes and tumor-region annotations.
+- **MSD Task10 Colon:** abdominal colon CT volumes and tumor-region labels.
+- **3D-IRCADb-01:** liver CT and liver/tumor segmentation resources.
+- **ISIC 2016:** RGB dermoscopy images and skin-lesion masks.
+- **TN3K:** thyroid ultrasound images and nodule masks.
+- **C-NMC 2019:** microscopy images for ALL/HEM cell research classification.
+- **DREAM6/FlowCAP-II:** eight-tube flow-cytometry AML research workflow.
 
-## Train LUNA16
+Datasets, raw clinical files, trained checkpoints, generated outputs and local
+databases are intentionally excluded from GitHub. They must be acquired and
+validated locally according to their individual licenses and registry entries.
 
-```powershell
-.venv\Scripts\python.exe -m training.train_luna --epochs 5 --batch-size 4 --image-size 256
-```
-
-The command writes `luna16_unet_best.pt` and `luna16_unet_last.pt` under
-`checkpoints/luna16/`. Add `--max-batches 2 --max-train-slices 32` for a quick
-smoke run.
-
-## Train LUNA16 nodule classifier
-
-~~~powershell
-.venv\Scripts\python.exe -m training.train_luna_nodule --epochs 10 --batch-size 8 --image-size 128 --patch-size 160
-~~~
-
-Evaluate and review the nodule classifier:
-
-~~~powershell
-.venv\Scripts\python.exe -m evaluation.evaluate_luna_nodule checkpoints/luna16_nodule/luna16_nodule_classifier_best.pt --image-size 128 --patch-size 160 --output-json outputs/luna16_nodule_report.json
-.venv\Scripts\python.exe -m evaluation.visualize_luna checkpoints/luna16/luna16_unet_best.pt --image-size 64 --count 12
-~~~
-
-The nodule classifier is an annotation-detection baseline. LUNA16 does not
-provide benign/malignant pathology labels, so its output must not be
-interpreted as a cancer diagnosis.
-
-## Train BUSI
-
-```powershell
-.venv\Scripts\python.exe -m training.train_busi --epochs 10 --batch-size 8 --image-size 256
-```
-
-The command writes `busi_multitask_unet_best.pt` and
-`busi_multitask_unet_last.pt` under `checkpoints/busi/`. Add
-`--max-batches 2 --max-train-samples 12` for a quick smoke run.
-
-After training, create a detailed validation report and qualitative figures:
-
-```powershell
-.venv\Scripts\python.exe -m evaluation.evaluate_busi checkpoints/busi/busi_multitask_unet_best.pt --output-json outputs/busi_validation_report.json
-.venv\Scripts\python.exe -m evaluation.visualize_busi checkpoints/busi/busi_multitask_unet_best.pt --count 12
-```
-
-The report includes a confusion matrix and normal/benign/malignant precision,
-recall and F1. Each subsequent full training run also saves separate best
-segmentation and best classification checkpoints.
-
-## Use the BUSI model through the app
-
-Start the API from the project root:
-
-~~~powershell
-.venv\Scripts\python.exe -m uvicorn app.main:app --reload
-~~~
-
-Upload one ultrasound image to POST /analyze/ultrasound. The response
-contains the model class probabilities, predicted segmentation area and a
-structured result marked for expert review. The endpoint never presents a
-BUSI class as confirmed cancer and returns 503 if the checkpoint is absent.
-
-## Use the CT specialist and multimodal routes
-
-The DICOM engine can validate one CT series, build a 3D volume and run the
-local LUNA16 lung-anatomy segmentation baseline:
+## Architecture
 
 ```text
-POST /analyze/ct-series
-POST /analyze/ct-specialist
-POST /analyze/multimodal/ct-series
+Web UI (/app)
+   -> FastAPI routes
+   -> input validation and privacy filtering
+   -> model router / orchestrator
+   -> execution engine
+   -> specialist service and adapter
+   -> StandardAnalysisResult
+   -> patient-facing explanation with safety boundaries
 ```
 
-The specialist route requires a CHEST series and reports segmented lung-mask
-geometry and volume. It does not detect or confirm cancer. The multimodal
-route can additionally accept one related PDF/TXT report and applies the same
-pathology-versus-imaging conflict safeguards as the ultrasound route.
+Important backend areas:
 
-`GET /system/status` shows registered dataset state, checkpoint availability,
-component readiness and platform safety gates.
+- `app/core/`: orchestration, routing, execution and input normalization.
+- `app/imaging/`: modality-specific preprocessing and inference services.
+- `app/models/`: model architectures.
+- `app/adapters/`: conversion to the standard result contract.
+- `app/clinical/`: document evidence, reasoning and multimodal fusion.
+- `app/security/`: users, password hashing, JWT and OAuth support.
+- `app/storage/`: privacy-aware case and chat storage.
+- `app/registry/`: model, cancer capability and dataset registries.
+- `web/`: frontend HTML, CSS, JavaScript and brand assets.
 
-## Cancer information assistant and web UI
+## Local setup
 
-The same FastAPI process serves a public, responsive educational assistant at
-`/app`. It uses the sky-blue Onco Aegis AI interface and does not require an
-account for a general question. The UI supports English/Bangla selection,
-loading and error states, follow-up prompts, official reference links and an
-optional local/OAuth account modal.
+```powershell
+cd U:\OncoAegis_AI
+\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+Copy-Item .env.example .env
+\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
 
-The information API is:
+Open `http://127.0.0.1:8000/app`.
+
+The optional cancer-information provider uses:
 
 ```text
+ONCOAEGIS_CANCER_AI_API_KEY=
+ONCOAEGIS_CANCER_AI_BASE_URL=https://api.openai.com/v1
+ONCOAEGIS_CANCER_AI_MODEL=gpt-4o-mini
+```
+
+Never commit `.env`, JWT secrets, OAuth secrets, patient data or API keys.
+
+## Main API routes
+
+```text
+GET  /app
 POST /information/cancer
 GET  /information/cancer/status
-```
-
-Example request:
-
-```json
-{
-  "cancer": "lung cancer",
-  "question": "What are common symptoms and how is it evaluated?",
-  "language": "en"
-}
-```
-
-Without a provider key, the API uses a bounded safe educational fallback. To
-enable optional natural-language provider support, set
-`ONCOAEGIS_CANCER_AI_API_KEY`, `ONCOAEGIS_CANCER_AI_BASE_URL` and
-`ONCOAEGIS_CANCER_AI_MODEL` using the `.env.example` contract. Provider output
-is still marked non-diagnostic and requires expert review; it must not replace
-pathology, examination or a treating clinician.
-
-## Authentication
-
-The API now exposes a GitHub-style local account flow:
-
-```text
+POST /analyze/specialist
+POST /analyze/document
+POST /analyze/fusion
+GET  /models
+GET  /cancer-capabilities
+POST /route/model
 POST /auth/register
 POST /auth/login
 POST /auth/refresh
 POST /auth/logout
 GET  /auth/me
-GET  /auth/providers
+GET/POST/DELETE /chat/history
 ```
 
-Registration and login return a short-lived bearer access token plus a
-rotating refresh token. Users and revocable sessions are stored in the separate
-SQLite database `outputs/auth.sqlite3`; set `ONCOAEGIS_AUTH_DATABASE_PATH` to
-change that location. Passwords are never stored in plaintext.
+## Training and evaluation
 
-The Google and Apple “Continue with” flows are implemented at
-`/auth/oauth/google/start` and `/auth/oauth/apple/start`. The callback exchanges
-the one-time authorization code, verifies the provider-signed ID token, links
-or creates the local user, and returns the same Onco Aegis AI session response as a
-password login. Google uses its client ID/secret and redirect URI. Apple can
-use `ONCOAEGIS_APPLE_CLIENT_SECRET`, or generate the client secret from
-`ONCOAEGIS_APPLE_TEAM_ID`, `ONCOAEGIS_APPLE_KEY_ID` and
-`ONCOAEGIS_APPLE_PRIVATE_KEY` (or `ONCOAEGIS_APPLE_PRIVATE_KEY_PATH`).
-
-Set these values before enabling a provider:
-
-```text
-ONCOAEGIS_GOOGLE_CLIENT_ID
-ONCOAEGIS_GOOGLE_CLIENT_SECRET
-ONCOAEGIS_GOOGLE_REDIRECT_URI
-ONCOAEGIS_APPLE_CLIENT_ID
-ONCOAEGIS_APPLE_REDIRECT_URI
-```
-
-Apple's web callback uses `response_mode=form_post`; the API accepts that POST
-callback as well as Google's query-parameter callback. Provider state is
-single-use and verified before any account linking.
-
-Set `ONCOAEGIS_JWT_SECRET_KEY` to a long, private deployment secret. The
-development fallback is only intended for local testing. If the dependency is
-not already installed in the environment, install it with:
+Existing training and evaluation code is retained in `training/`,
+`app/training/` and `evaluation/`. Example commands:
 
 ```powershell
-pip install "python-jose[cryptography]"
+\.venv\Scripts\python.exe -m training.train_luna --epochs 5 --batch-size 4 --image-size 256
+\.venv\Scripts\python.exe -m training.train_busi --epochs 10 --batch-size 8 --image-size 256
+\.venv\Scripts\python.exe -m evaluation.phase1_validation
 ```
 
-## Evaluate checkpoints
+Validation metrics are research-pipeline evidence only. They are not clinical
+sensitivity, specificity, safety or prospective performance claims.
+
+## Verification
 
 ```powershell
-.venv\Scripts\python.exe -m evaluation.evaluate_luna checkpoints/luna16/luna16_unet_best.pt --image-size 64 --output-json outputs/luna16_validation_metrics.json
-.venv\Scripts\python.exe -m evaluation.evaluate_busi checkpoints/busi/busi_multitask_unet_best.pt
+\.venv\Scripts\python.exe -m unittest discover -s tests -q
+\.venv\Scripts\python.exe -m compileall -q app tests
+node --check web\app.js
 ```
 
-Metrics are validation metrics only. They are not clinical performance claims.
+The test suite covers authentication, ownership boundaries, chat history,
+document intelligence, DICOM validation, input contracts, model routing,
+specialist integration and phase-one evaluation reporting.
 
-## Dataset registry and common sample format
+## Deployment boundary
 
-The registry at `datasets/registry/datasets.json` tracks DeepLesion, FLARE,
-BUSI and LUNA16 with modality, organ coverage, annotation type, access note,
-local path, processing state and intended model. `DatasetRegistry` exposes
-these entries to the backend, while `UniversalDataset` adapts supported
-dataset outputs to the `StandardMedicalSample` contract. DeepLesion and FLARE
-remain registered but are intentionally not downloaded yet.
+The frontend can be hosted on Vercel. The FastAPI backend and model inference
+are better hosted on Render, Railway or a managed VM because PyTorch, medical
+libraries and model checkpoints are not a good fit for Vercel serverless
+limits. Configure the frontend API base URL to the deployed backend and set
+production JWT, provider, CORS, retention and monitoring values before public
+use.
 
-## Specialist model registry and routing
+## Safety and governance
 
-The specialist registry is kept separate from the dataset registry. It records
-the model ID, modality, organ, task, input contract, output contract,
-checkpoint and research-safety status. The cancer registry maps a clinical
-area to registered specialist model IDs; an empty list means the capability
-is not implemented and must not be guessed.
-
-The API exposes:
-
-```text
-GET  /models
-GET  /cancer-capabilities
-POST /route/model
-```
-
-A routing request can specify modality, organ, task and optional cancer type.
-If several models match without a task, the router returns `task_required`.
-If no specialist exists, it returns `specialist_model_unavailable`. Research
-model routes always carry an expert-review safety status and never confirm
-malignancy.
-
-## Clinical document evidence and fusion
-
-The document_intelligence module accepts PDF/TXT reports and returns limited
-structured evidence such as pathology-confirmed terminology or
-imaging-suspicious terminology. It does not return a cancer diagnosis;
-scanned PDFs are marked as requiring OCR.
-
-The fusion module combines imaging evidence with document evidence. Suspicious
-imaging plus benign pathology produces an explicit conflict and withholds a
-definitive conclusion. Imaging-only suspicion remains unconfirmed.
-
-The API exposes POST /analyze/document and POST /analyze/fusion.
-
-All imaging outputs are research outputs and require expert review. Imaging
-alone never becomes a confirmed malignancy conclusion; explicit pathology
-evidence is treated as evidence for review, and conflicting evidence causes
-the fusion layer to withhold a definitive conclusion.
+This project is research software. Imaging outputs require qualified expert
+review. Pathology, examination, clinical history and confirmatory testing are
+outside the authority of an image model. Production use requires external
+validation, privacy review, consent/retention policy, monitoring, incident
+response and clinical governance approval.
