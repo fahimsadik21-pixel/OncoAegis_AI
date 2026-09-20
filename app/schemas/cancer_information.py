@@ -33,7 +33,7 @@ class CancerInformationResponse(BaseModel):
     follow_up_questions: list[str]
     urgent_guidance: str
     sources: list[InformationSource]
-    mode: Literal["safe_fallback", "configured_ai"]
+    mode: Literal["safe_fallback", "offline_knowledge_base", "configured_ai"]
     specialist_registry_match: bool
     diagnostic_conclusion: bool = False
     expert_review_required: bool = True

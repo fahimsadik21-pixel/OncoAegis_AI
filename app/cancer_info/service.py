@@ -115,6 +115,40 @@ _ALIASES = {
     "cholangiocarcinoma": ("bile_duct_cancer", "Bile duct cancer"),
     "bile duct cancer": ("bile_duct_cancer", "Bile duct cancer"),
     "sarcoma": ("sarcoma", "Sarcoma"),
+    "oral cancer": ("oral_cancer", "Oral cancer"),
+    "mouth cancer": ("oral_cancer", "Oral cancer"),
+    "head and neck cancer": ("head_neck_cancer", "Head and neck cancer"),
+    "oropharyngeal cancer": ("head_neck_cancer", "Head and neck cancer"),
+    "nasopharyngeal cancer": ("head_neck_cancer", "Head and neck cancer"),
+    "anal cancer": ("anal_cancer", "Anal cancer"),
+    "small intestine cancer": ("small_intestine_cancer", "Small intestine cancer"),
+    "small bowel cancer": ("small_intestine_cancer", "Small intestine cancer"),
+    "appendix cancer": ("appendix_cancer", "Appendix cancer"),
+    "neuroendocrine tumor": ("neuroendocrine_tumor", "Neuroendocrine tumor"),
+    "bone cancer": ("bone_cancer", "Bone cancer"),
+    "osteosarcoma": ("bone_cancer", "Bone cancer"),
+    "ewing sarcoma": ("bone_cancer", "Bone cancer"),
+    "soft tissue sarcoma": ("soft_tissue_sarcoma", "Soft tissue sarcoma"),
+    "mesothelioma": ("mesothelioma", "Mesothelioma"),
+    "thymic cancer": ("thymic_cancer", "Thymic cancer"),
+    "thymoma": ("thymic_cancer", "Thymic cancer"),
+    "salivary gland cancer": ("salivary_gland_cancer", "Salivary gland cancer"),
+    "vulvar cancer": ("vulvar_cancer", "Vulvar cancer"),
+    "vaginal cancer": ("vaginal_cancer", "Vaginal cancer"),
+    "uterine sarcoma": ("uterine_sarcoma", "Uterine sarcoma"),
+    "urethral cancer": ("urethral_cancer", "Urethral cancer"),
+    "ureter cancer": ("upper_urinary_tract_cancer", "Upper urinary tract cancer"),
+    "renal pelvis cancer": ("upper_urinary_tract_cancer", "Upper urinary tract cancer"),
+    "glioblastoma": ("brain_cancer", "Brain cancer"),
+    "spinal cord tumor": ("spinal_cord_tumor", "Spinal cord tumor"),
+    "peritoneal cancer": ("peritoneal_cancer", "Peritoneal cancer"),
+    "mesenteric cancer": ("peritoneal_cancer", "Peritoneal cancer"),
+    "kaposi sarcoma": ("kaposi_sarcoma", "Kaposi sarcoma"),
+    "burkitt lymphoma": ("burkitt_lymphoma", "Burkitt lymphoma"),
+    "mantle cell lymphoma": ("mantle_cell_lymphoma", "Mantle cell lymphoma"),
+    "mycosis fungoides": ("cutaneous_t_cell_lymphoma", "Cutaneous T-cell lymphoma"),
+    "chronic lymphocytic leukemia": ("chronic_lymphocytic_leukemia", "Chronic lymphocytic leukemia"),
+    "chronic myeloid leukemia": ("chronic_myeloid_leukemia", "Chronic myeloid leukemia"),
 }
 
 # Topic-aware educational anchors for the offline fallback. These are deliberately
@@ -151,6 +185,34 @@ _TOPIC_CONTEXT.update({
     "bile_duct_cancer": ("Bile duct cancer, or cholangiocarcinoma, can affect bile drainage. Jaundice, itching or abdominal symptoms have many causes and require clinical evaluation.", ""),
     "sarcoma": ("Sarcoma is a diverse group of cancers of connective or supporting tissues. A growing deep or persistent mass needs imaging and specialist pathology review.", ""),
 })
+
+
+_OFFLINE_PROFILES = {
+    "oral_cancer": {"overview": "Oral cancer can affect the lips, tongue, gums, cheek, floor of mouth, or other mouth tissues.", "symptoms": ["A mouth sore that does not heal", "A persistent lump, pain, numbness, bleeding, or red/white patch", "Difficulty chewing, swallowing, or moving the jaw"], "tests": "Mouth and neck examination, dental or ENT review, imaging when needed, and biopsy of a concerning lesion.", "prevention": "Avoid tobacco and betel-nut exposure, limit alcohol, use sun protection for the lips, and attend dental or medical review for persistent lesions."},
+    "head_neck_cancer": {"overview": "Head and neck cancers arise in areas such as the throat, voice box, nose, sinuses, or nearby tissues; HPV and tobacco are relevant risks for some types.", "symptoms": ["Persistent hoarseness or sore throat", "A neck lump, swallowing difficulty, ear pain, or nasal blockage", "Unexplained weight loss or a mouth/throat lesion"], "tests": "ENT examination, endoscopy, imaging, HPV-related testing when relevant, and tissue biopsy.", "prevention": "Do not smoke or use smokeless tobacco, limit alcohol, consider HPV vaccination according to local guidance, and seek review for persistent symptoms."},
+    "anal_cancer": {"overview": "Anal cancer develops in the anal canal or nearby skin and has several possible cell types.", "symptoms": ["Bleeding, pain, itching, or a lump near the anus", "Change in bowel habits or discharge"], "tests": "Examination, anoscopy or endoscopy, imaging for extent, and biopsy.", "prevention": "HPV vaccination, safer-sex practices, avoiding tobacco, and assessment of persistent anal symptoms may reduce risk or delay."},
+    "small_intestine_cancer": {"overview": "Small-intestine cancers include adenocarcinoma, neuroendocrine tumors, lymphoma, and sarcoma, so subtype matters.", "symptoms": ["Abdominal pain, cramps, nausea, vomiting, bleeding, or unexplained weight loss", "Anemia or symptoms of bowel blockage"], "tests": "Blood tests, CT or MRI, endoscopy or capsule studies when appropriate, and biopsy.", "prevention": "There is no general screening test for most people; manage known bowel disease and inherited-risk conditions with specialist guidance."},
+    "appendix_cancer": {"overview": "Appendix tumors include neuroendocrine tumors and mucinous or other neoplasms; their behavior varies widely.", "symptoms": ["Appendicitis-like pain, abdominal swelling, or bowel changes", "Many are found unexpectedly during surgery or imaging"], "tests": "Imaging, surgery findings, pathology, and sometimes tumor-marker or staging assessment.", "prevention": "No proven general prevention or population screening exists; follow specialist advice for inherited-risk syndromes."},
+    "neuroendocrine_tumor": {"overview": "Neuroendocrine tumors can arise in many organs and may grow slowly or aggressively; hormone production is relevant for some tumors.", "symptoms": ["Symptoms depend on the organ and hormone production", "Flushing, diarrhea, wheezing, pain, or an incidental mass can occur"], "tests": "Organ-specific imaging, blood or urine markers when appropriate, pathology and receptor or biomarker testing.", "prevention": "Most have no established prevention; manage inherited syndromes and follow specialist surveillance when applicable."},
+    "bone_cancer": {"overview": "Primary bone cancers include osteosarcoma, Ewing sarcoma, and other rare tumors; cancers that spread to bone are a separate situation.", "symptoms": ["Persistent localized bone pain or swelling", "A lump, reduced movement, or a fracture after minor injury"], "tests": "X-ray or MRI, staging scans, and carefully planned biopsy by a specialist team.", "prevention": "There is no proven general prevention; persistent bone pain or swelling should be assessed rather than self-diagnosed."},
+    "soft_tissue_sarcoma": {"overview": "Soft-tissue sarcoma is a group of cancers arising in muscle, fat, blood vessels, nerves, or connective tissue.", "symptoms": ["A growing or deep lump, often initially painless", "Pain, pressure, or reduced function as a mass enlarges"], "tests": "MRI or CT followed by specialist-planned core biopsy and pathology review.", "prevention": "Most cases have no known preventable cause; avoid unnecessary radiation exposure and discuss inherited risk when family history suggests it."},
+    "mesothelioma": {"overview": "Mesothelioma is a cancer of lining tissues, most often associated with the pleura; asbestos exposure is an important risk factor.", "symptoms": ["Shortness of breath, chest pain, persistent cough, or fluid around the lung", "Abdominal swelling or pain in peritoneal disease"], "tests": "Imaging, fluid or tissue sampling, pathology, and specialist staging.", "prevention": "Avoid occupational or environmental asbestos exposure and follow workplace protection rules; smoking cessation remains important for overall lung health."},
+    "thymic_cancer": {"overview": "Thymic tumors arise in the thymus in the chest and include thymoma and thymic carcinoma.", "symptoms": ["Chest discomfort, cough, breathlessness, or difficulty swallowing", "Some people have no symptoms and are found incidentally"], "tests": "Chest imaging, specialist assessment, pathology, and evaluation for associated autoimmune conditions when indicated.", "prevention": "No proven general prevention exists; treatment and surveillance depend on tumor type and extent."},
+    "salivary_gland_cancer": {"overview": "Salivary-gland cancers are uncommon and include multiple histologic subtypes with different behavior.", "symptoms": ["A persistent cheek, jaw, mouth, or neck lump", "Facial weakness, numbness, pain, or difficulty opening the mouth"], "tests": "Head and neck examination, ultrasound or MRI, needle sampling or biopsy, and staging imaging.", "prevention": "There is no established general prevention; avoid tobacco and seek assessment for a persistent salivary-area lump."},
+    "vulvar_cancer": {"overview": "Vulvar cancer affects the external genital skin and has squamous and other subtypes.", "symptoms": ["Persistent itching, pain, bleeding, skin change, or a sore or lump", "A change that does not settle with routine care"], "tests": "Clinical examination and biopsy; imaging is used when staging requires it.", "prevention": "HPV vaccination, avoiding tobacco, and evaluation of persistent vulvar changes can reduce risk or delay."},
+    "vaginal_cancer": {"overview": "Vaginal cancer is uncommon and may be related to HPV or other factors depending on subtype.", "symptoms": ["Unusual bleeding or discharge", "Pelvic pain, pain during sex, or a vaginal lump"], "tests": "Pelvic examination, biopsy, HPV-related assessment when relevant, and imaging for staging.", "prevention": "HPV vaccination, cervical screening where recommended, safer-sex practices, and tobacco avoidance are helpful risk-reduction measures."},
+    "uterine_sarcoma": {"overview": "Uterine sarcomas are uncommon connective-tissue cancers of the uterus and differ from endometrial carcinoma.", "symptoms": ["Abnormal vaginal bleeding, pelvic pressure, pain, or a rapidly enlarging uterus", "Symptoms may overlap with benign conditions"], "tests": "Pelvic examination, ultrasound or MRI, surgery and pathology; specialist staging is important.", "prevention": "There is no reliable general prevention; discuss unusual bleeding or inherited risk with a clinician."},
+    "urethral_cancer": {"overview": "Urethral cancer is rare and can arise from different cell types along the urethra.", "symptoms": ["Blood in urine, bleeding from the urethra, a lump, weak stream, or difficulty urinating", "Pain or recurrent urinary symptoms"], "tests": "Urine testing, examination, urethroscopy, imaging, and biopsy.", "prevention": "No proven general screening exists; avoid tobacco and seek assessment for persistent urinary bleeding or obstruction."},
+    "upper_urinary_tract_cancer": {"overview": "Upper urinary tract cancer includes urothelial tumors of the renal pelvis or ureter.", "symptoms": ["Blood in the urine, flank pain, or urinary symptoms", "Some cases are detected during evaluation of hematuria"], "tests": "Urine studies, CT or MRI urography, endoscopic assessment, and pathology.", "prevention": "Avoid tobacco and relevant workplace chemical exposures; persistent blood in urine needs medical assessment."},
+    "spinal_cord_tumor": {"overview": "Spinal cord and spinal-column tumors may be primary or metastatic and can affect nerves through pressure.", "symptoms": ["Persistent back pain, weakness, numbness, balance change, or bladder/bowel difficulty", "New or worsening neurological symptoms require prompt assessment"], "tests": "Neurological examination and MRI; tissue diagnosis may be needed depending on location and safety.", "prevention": "There is no general prevention; new weakness, loss of sensation, or bladder/bowel dysfunction needs urgent medical care."},
+    "peritoneal_cancer": {"overview": "Peritoneal cancer affects the lining of the abdomen and may be primary or related to another organ cancer.", "symptoms": ["Abdominal swelling, discomfort, early fullness, bowel changes, or unexplained weight loss", "Fluid accumulation may occur"], "tests": "CT or MRI, fluid analysis when present, tumor markers in context, and tissue pathology.", "prevention": "There is no general population screening; inherited ovarian or colorectal risk may warrant genetic counselling."},
+    "kaposi_sarcoma": {"overview": "Kaposi sarcoma is a vascular tumor associated with human herpesvirus 8 and immune-system context.", "symptoms": ["Persistent purple, red, or brown skin lesions", "Mouth, lymph-node, lung, or digestive symptoms in internal disease"], "tests": "Skin or tissue biopsy, examination for extent, and assessment of immune status.", "prevention": "HIV prevention and treatment, safer sex, and appropriate immune-care follow-up are important risk-reduction measures."},
+    "burkitt_lymphoma": {"overview": "Burkitt lymphoma is a fast-growing B-cell non-Hodgkin lymphoma that needs urgent specialist evaluation.", "symptoms": ["Rapidly enlarging lymph nodes, abdominal swelling or pain, fever, night sweats, or weight loss", "Symptoms vary by disease location"], "tests": "Urgent blood tests, imaging, tissue biopsy, immunophenotyping, genetics, and sometimes marrow or spinal-fluid studies.", "prevention": "There is no reliable general prevention; prompt evaluation of rapidly progressive symptoms is important."},
+    "mantle_cell_lymphoma": {"overview": "Mantle-cell lymphoma is a B-cell non-Hodgkin lymphoma with variable behavior and specialized pathology markers.", "symptoms": ["Painless lymph-node swelling, fatigue, fever, night sweats, weight loss, or abdominal fullness", "Some people have few symptoms at first"], "tests": "Blood tests, imaging, lymph-node or tissue biopsy, immunophenotyping and genetic testing.", "prevention": "No proven general prevention exists; follow-up is individualized by a hematology team."},
+    "cutaneous_t_cell_lymphoma": {"overview": "Cutaneous T-cell lymphomas primarily affect the skin and include mycosis fungoides and Sézary syndrome.", "symptoms": ["Persistent itchy patches, plaques, or tumors", "Widespread redness, lymph-node swelling, or blood involvement in advanced disease"], "tests": "Dermatology examination, repeated skin biopsies when needed, blood tests, and staging studies.", "prevention": "No established prevention exists; persistent or changing rashes should be assessed rather than treated indefinitely without review."},
+    "chronic_lymphocytic_leukemia": {"overview": "Chronic lymphocytic leukemia is a blood and bone-marrow cancer involving abnormal lymphocytes; some people are monitored before treatment is needed.", "symptoms": ["Fatigue, recurrent infections, swollen lymph nodes, night sweats, weight loss, or enlarged spleen", "It may be found on a routine blood count"], "tests": "Complete blood count, flow cytometry, examination, and selected genetic or molecular tests.", "prevention": "No proven general prevention exists; infection prevention and regular specialist monitoring are important."},
+    "chronic_myeloid_leukemia": {"overview": "Chronic myeloid leukemia is a myeloid blood cancer commonly defined by the BCR-ABL1 genetic change.", "symptoms": ["Fatigue, night sweats, weight loss, abdominal fullness, or bone discomfort", "It may be found through an abnormal blood count"], "tests": "Blood count, blood or marrow examination, and molecular testing for BCR-ABL1.", "prevention": "No proven general prevention exists; treatment response is monitored with regular molecular testing."},
+}
 
 
 def _topic_context(topic: CancerTopic) -> tuple[str, str]:
@@ -446,11 +508,46 @@ class CancerInformationService:
             expert_review_required=True,
         )
 
+    def _offline_profile_answer(
+        self, topic: CancerTopic, question: str, language: str
+    ) -> CancerInformationResponse:
+        profile = _OFFLINE_PROFILES[topic.key]
+        answer = (
+            f"{profile['overview']} {_question_focus(question, 'en')} "
+            "This is educational information, not a diagnosis or a guarantee of cure."
+        )
+        if _PERSONAL_OR_DIAGNOSTIC.search(question):
+            answer += " A clinician must interpret personal symptoms, reports, examination findings, and pathology."
+        sections = [
+            _section("What it is", profile["overview"]),
+            _section("Possible symptoms", "These symptoms can have many non-cancer causes; symptoms alone cannot confirm or exclude cancer.", profile["symptoms"]),
+            _section("How doctors evaluate it", profile["tests"], ["Clinical history and examination", "Imaging or laboratory tests selected for the suspected site", "Biopsy and pathology when tissue confirmation is needed", "Stage and biomarker assessment when relevant"]),
+            _section("Prevention and risk reduction", profile["prevention"], ["Follow age- and risk-appropriate screening guidance", "Avoid tobacco and limit alcohol where relevant", "Discuss family history, inherited risk, vaccination, and occupational exposures with a clinician"]),
+            _section("Treatment overview", "Treatment depends on subtype, stage, biomarkers, overall health, and goals. Surgery, radiation, chemotherapy, hormone therapy, targeted therapy, immunotherapy, or active monitoring may be considered in different situations. Do not start or stop treatment without the treating team."),
+            _section("Questions for the care team", "Ask about the exact subtype, stage, tests still needed, treatment goal, expected benefits and risks, side-effect support, second opinion, and relevant clinical trials."),
+        ]
+        urgent_guidance = "Seek local emergency care for severe breathing difficulty, confusion or fainting, heavy bleeding, uncontrolled pain, or high fever during cancer treatment."
+        return CancerInformationResponse(
+            request_id=f"info-{uuid.uuid4().hex}",
+            cancer=topic.label,
+            answer=answer,
+            sections=sections,
+            follow_up_questions=["Would you like symptoms, testing, treatment, prevention, or risk information?", "Do you mean a specific subtype or stage?", "Would you like help preparing questions for a clinician?"],
+            urgent_guidance=urgent_guidance,
+            sources=_sources(topic),
+            mode="offline_knowledge_base",
+            specialist_registry_match=bool(topic.registry_key),
+            diagnostic_conclusion=False,
+            expert_review_required=True,
+        )
+
     def _fallback_answer(
         self, topic: CancerTopic, question: str, language: str
     ) -> CancerInformationResponse:
         personal = bool(_PERSONAL_OR_DIAGNOSTIC.search(question))
         urgent = bool(_URGENT_TERMS.search(question))
+        if topic.key in _OFFLINE_PROFILES and language == "en":
+            return self._offline_profile_answer(topic, question, language)
         if language == "bn":
             return self._bangla_fallback(topic, question, personal, urgent)
         if language == "bn":
