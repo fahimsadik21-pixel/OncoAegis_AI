@@ -109,9 +109,7 @@ class ModelSpec:
         if not self.checkpoint_path:
             return True
 
-        return (
-            _PROJECT_ROOT / self.checkpoint_path
-        ).is_file()
+        return (_PROJECT_ROOT / self.checkpoint_path).is_file()
 
 
     def to_dict(self):

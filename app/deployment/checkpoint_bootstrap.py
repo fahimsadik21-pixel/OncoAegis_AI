@@ -33,9 +33,26 @@ CHECKPOINTS = (
 
 
 def checkpoint_download_enabled() -> bool:
-    return os.getenv("ONCOAEGIS_DOWNLOAD_CHECKPOINTS", "").strip().lower() in {
+    configured = os.getenv("ONCOAEGIS_DOWNLOAD_CHECKPOINTS", "").strip().lower()
+    if configured:
+        return configured in {
         "1", "true", "yes", "on",
-    }
+        }
+    # Render deployments need real weights by default; local development stays
+    # opt-in unless the platform explicitly identifies itself as Render.
+    return os.getenv("RENDER", "").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _valid_weight_file(path: Path) -> bool:
+    try:
+        if not path.is_file() or path.stat().st_size <= 1024:
+            return False
+        with path.open("rb") as handle:
+            return not handle.read(96).startswith(
+                b"version https://git-lfs.github.com/spec/v1"
+            )
+    except OSError:
+        return False
 
 
 def bootstrap_checkpoints() -> dict[str, int | bool]:
@@ -48,25 +65,33 @@ def bootstrap_checkpoints() -> dict[str, int | bool]:
     downloaded = available = failed = 0
     for relative_path in CHECKPOINTS:
         destination = PROJECT_ROOT / "checkpoints" / relative_path
-        if destination.is_file() and destination.stat().st_size > 1024:
+        if _valid_weight_file(destination):
             available += 1
             continue
+        candidates = [relative_path]
+        if relative_path.endswith("_best.pt"):
+            candidates.append(relative_path.replace("_best.pt", "_last.pt"))
         destination.parent.mkdir(parents=True, exist_ok=True)
-        temporary = destination.with_suffix(destination.suffix + ".part")
-        url = f"https://huggingface.co/{repository}/resolve/main/{relative_path}?download=true"
-        try:
-            request = Request(url, headers={"User-Agent": "OncoAegisAI/1.0"})
-            with urlopen(request, timeout=180) as response, temporary.open("wb") as output:
-                while chunk := response.read(1024 * 1024):
-                    output.write(chunk)
-            if temporary.stat().st_size <= 1024:
-                raise OSError("downloaded checkpoint is unexpectedly small")
-            temporary.replace(destination)
-            downloaded += 1
-            available += 1
-            LOGGER.info("Downloaded checkpoint: %s", relative_path)
-        except OSError as error:
+        success = False
+        for candidate in candidates:
+            temporary = destination.with_suffix(destination.suffix + ".part")
+            url = f"https://huggingface.co/{repository}/resolve/main/{candidate}?download=true"
+            try:
+                request = Request(url, headers={"User-Agent": "OncoAegisAI/1.0"})
+                with urlopen(request, timeout=180) as response, temporary.open("wb") as output:
+                    while chunk := response.read(1024 * 1024):
+                        output.write(chunk)
+                if not _valid_weight_file(temporary):
+                    raise OSError("downloaded file is missing or a Git-LFS pointer")
+                temporary.replace(destination)
+                downloaded += 1
+                available += 1
+                success = True
+                LOGGER.info("Downloaded checkpoint: %s (source: %s)", relative_path, candidate)
+                break
+            except OSError as error:
+                temporary.unlink(missing_ok=True)
+                LOGGER.warning("Checkpoint download failed for %s: %s", candidate, error)
+        if not success:
             failed += 1
-            temporary.unlink(missing_ok=True)
-            LOGGER.warning("Checkpoint download failed for %s: %s", relative_path, error)
     return {"enabled": True, "downloaded": downloaded, "available": available, "failed": failed}
