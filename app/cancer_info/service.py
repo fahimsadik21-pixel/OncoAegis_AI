@@ -81,6 +81,40 @@ _ALIASES = {
     "leukemia": ("blood_cancer", "Leukemia"),
     "all": ("acute_lymphoblastic_leukemia", "Acute lymphoblastic leukemia"),
     "aml": ("acute_myeloid_leukemia", "Acute myeloid leukemia"),
+    "adrenal": ("adrenal_cancer", "Adrenal cancer"),
+    "adrenal cancer": ("adrenal_cancer", "Adrenal cancer"),
+    "adrenocortical carcinoma": ("adrenal_cancer", "Adrenal cancer"),
+    "adrenocortical carcinoma acc": ("adrenal_cancer", "Adrenal cancer"),
+    "acc": ("adrenal_cancer", "Adrenal cancer"),
+    "prostate": ("prostate_cancer", "Prostate cancer"),
+    "prostate cancer": ("prostate_cancer", "Prostate cancer"),
+    "prostate adenocarcinoma": ("prostate_cancer", "Prostate cancer"),
+    "kidney cancer": ("kidney_cancer", "Kidney cancer"),
+    "renal cell carcinoma": ("kidney_cancer", "Kidney cancer"),
+    "rcc": ("kidney_cancer", "Kidney cancer"),
+    "ovarian cancer": ("ovarian_cancer", "Ovarian cancer"),
+    "ovarian carcinoma": ("ovarian_cancer", "Ovarian cancer"),
+    "cervical cancer": ("cervical_cancer", "Cervical cancer"),
+    "cervical carcinoma": ("cervical_cancer", "Cervical cancer"),
+    "endometrial cancer": ("endometrial_cancer", "Endometrial cancer"),
+    "uterine cancer": ("endometrial_cancer", "Endometrial cancer"),
+    "stomach cancer": ("stomach_cancer", "Stomach cancer"),
+    "gastric cancer": ("stomach_cancer", "Stomach cancer"),
+    "esophageal cancer": ("esophageal_cancer", "Esophageal cancer"),
+    "oesophageal cancer": ("esophageal_cancer", "Esophageal cancer"),
+    "bladder cancer": ("bladder_cancer", "Bladder cancer"),
+    "urothelial carcinoma": ("bladder_cancer", "Bladder cancer"),
+    "melanoma": ("melanoma", "Melanoma"),
+    "multiple myeloma": ("multiple_myeloma", "Multiple myeloma"),
+    "myeloma": ("multiple_myeloma", "Multiple myeloma"),
+    "hodgkin lymphoma": ("hodgkin_lymphoma", "Hodgkin lymphoma"),
+    "non hodgkin lymphoma": ("non_hodgkin_lymphoma", "Non-Hodgkin lymphoma"),
+    "non-hodgkin lymphoma": ("non_hodgkin_lymphoma", "Non-Hodgkin lymphoma"),
+    "testicular cancer": ("testicular_cancer", "Testicular cancer"),
+    "gallbladder cancer": ("gallbladder_cancer", "Gallbladder cancer"),
+    "cholangiocarcinoma": ("bile_duct_cancer", "Bile duct cancer"),
+    "bile duct cancer": ("bile_duct_cancer", "Bile duct cancer"),
+    "sarcoma": ("sarcoma", "Sarcoma"),
 }
 
 # Topic-aware educational anchors for the offline fallback. These are deliberately
@@ -97,6 +131,27 @@ _TOPIC_CONTEXT = {
     "brain_cancer": ("Brain tumors vary widely by cell type, location and grade; MRI findings alone do not establish the final diagnosis, and tissue or specialist review may be needed.", "মস্তিষ্কের tumour cell type, location ও grade অনুযায়ী অনেক ভিন্ন হতে পারে; শুধু MRI দিয়ে চূড়ান্ত diagnosis হয় না, tissue বা specialist review প্রয়োজন হতে পারে।"),
     "blood_cancer": ("Blood cancers include leukemia, lymphoma and myeloma; blood counts, cell markers, marrow or tissue studies and genetics may be relevant.", "রক্তের ক্যান্সারের মধ্যে leukemia, lymphoma ও myeloma আছে; blood count, cell marker, marrow বা tissue study এবং genetics গুরুত্বপূর্ণ হতে পারে।"),
 }
+
+_TOPIC_CONTEXT.update({
+    "adrenal_cancer": ("Adrenal cancer includes rare tumors such as adrenocortical carcinoma. Hormone production, tumor size, spread, imaging and pathology are important to specialist evaluation.", ""),
+    "prostate_cancer": ("Prostate cancer commonly refers to prostate adenocarcinoma. PSA, examination, imaging, biopsy grade, stage and clinical risk group guide evaluation.", ""),
+    "kidney_cancer": ("Kidney cancer often refers to renal-cell carcinoma. Kidney function, imaging pattern, tumor size, spread and pathology help guide evaluation.", ""),
+    "ovarian_cancer": ("Ovarian cancer includes several epithelial and non-epithelial subtypes. Symptoms can be vague; pelvic imaging, tumor markers and tissue diagnosis may be used together.", ""),
+    "cervical_cancer": ("Cervical cancer is often related to persistent high-risk HPV infection. Screening, examination, biopsy and stage assessment are central to evaluation.", ""),
+    "endometrial_cancer": ("Endometrial cancer begins in the uterine lining. Abnormal uterine bleeding is an important symptom to assess, but many non-cancer causes are possible.", ""),
+    "stomach_cancer": ("Stomach, or gastric, cancer requires assessment of symptoms, endoscopy and biopsy; subtype, location, stage and biomarker findings affect care discussions.", ""),
+    "esophageal_cancer": ("Esophageal cancer affects the swallowing tube. Progressive swallowing difficulty, weight loss and reflux-like symptoms need clinical assessment because they have multiple possible causes.", ""),
+    "bladder_cancer": ("Bladder cancer is often evaluated after blood in the urine or urinary symptoms. Urine testing, imaging and cystoscopy with pathology may be relevant.", ""),
+    "melanoma": ("Melanoma is a skin cancer arising from pigment-producing cells. A changing or unusual lesion needs clinical and dermatology assessment; biopsy establishes diagnosis.", ""),
+    "multiple_myeloma": ("Multiple myeloma is a plasma-cell cancer. Blood counts, kidney function, calcium, protein studies, imaging and marrow assessment may be relevant.", ""),
+    "hodgkin_lymphoma": ("Hodgkin lymphoma is a lymphoma subtype involving lymphatic tissue. Persistent lymph-node swelling and systemic symptoms need medical assessment and tissue review.", ""),
+    "non_hodgkin_lymphoma": ("Non-Hodgkin lymphoma is a broad group of lymphoid cancers with many subtypes. Tissue pathology, immunophenotyping and imaging help define the specific disease.", ""),
+    "testicular_cancer": ("Testicular cancer often presents as a persistent testicular lump or enlargement. Examination, ultrasound, blood markers and specialist review are important.", ""),
+    "gallbladder_cancer": ("Gallbladder cancer is uncommon and may be found during evaluation of biliary or abdominal symptoms. Imaging and pathology are needed for reliable interpretation.", ""),
+    "bile_duct_cancer": ("Bile duct cancer, or cholangiocarcinoma, can affect bile drainage. Jaundice, itching or abdominal symptoms have many causes and require clinical evaluation.", ""),
+    "sarcoma": ("Sarcoma is a diverse group of cancers of connective or supporting tissues. A growing deep or persistent mass needs imaging and specialist pathology review.", ""),
+})
+
 
 def _topic_context(topic: CancerTopic) -> tuple[str, str]:
     return _TOPIC_CONTEXT.get(topic.key, (
