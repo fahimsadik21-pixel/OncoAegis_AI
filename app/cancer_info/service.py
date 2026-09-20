@@ -323,13 +323,57 @@ class CancerInformationService:
         return "bn" if _BENGALI.search(request.question) else "en"
 
     def answer(self, request: CancerInformationRequest) -> CancerInformationResponse:
+        """Answer without allowing an optional provider to break the API.
+
+        The configured model is an enhancement only.  A provider outage,
+        incompatible response, or a deployment-time dependency mismatch must
+        still return the local educational answer instead of HTTP 500.
+        """
         topic = normalize_topic(request.cancer)
         question = _clean_text(request.question, max_length=2400)
         language = self._language(request)
-        model_response = self._configured_model_answer(topic, question, language)
-        if model_response is not None:
-            return model_response
-        return self._fallback_answer(topic, question, language)
+        try:
+            model_response = self._configured_model_answer(topic, question, language)
+            if model_response is not None:
+                return model_response
+        except Exception:
+            # Never expose provider/response-parser failures to the client.
+            pass
+        try:
+            return self._fallback_answer(topic, question, language)
+        except Exception:
+            # Last-resort response for a partially configured production image.
+            return self._emergency_fallback(topic, language)
+
+    @staticmethod
+    def _emergency_fallback(topic: CancerTopic, language: str) -> CancerInformationResponse:
+        if language == "bn":
+            answer = (
+                f"{topic.label} সম্পর্কে এটি সাধারণ শিক্ষামূলক তথ্য; এটি diagnosis নয়। "
+                "ব্যক্তিগত রিপোর্ট, উপসর্গ ও চিকিৎসার সিদ্ধান্ত qualified clinician-এর সঙ্গে আলোচনা করুন।"
+            )
+            title = "নিরাপদ তথ্য"
+            content = "লক্ষণ দিয়ে cancer নিশ্চিত বা বাদ দেওয়া যায় না; প্রয়োজন হলে clinician পরীক্ষা, imaging ও pathology review করতে পারেন।"
+        else:
+            answer = (
+                f"{topic.label} information is educational only and is not a diagnosis. "
+                "Discuss personal reports, symptoms, and treatment decisions with a qualified clinician."
+            )
+            title = "Safe information"
+            content = "Symptoms alone cannot confirm or exclude cancer; a clinician may use examination, imaging, laboratory testing, and pathology when appropriate."
+        return CancerInformationResponse(
+            request_id=f"info-{uuid.uuid4().hex}",
+            cancer=topic.label,
+            answer=answer,
+            sections=[_section(title, content)],
+            follow_up_questions=["Would you like symptoms, testing, treatment, or prevention information?"],
+            urgent_guidance="Seek local emergency care for severe breathing difficulty, confusion or fainting, heavy bleeding, uncontrolled pain, or high fever during cancer treatment.",
+            sources=_sources(topic),
+            mode="safe_fallback",
+            specialist_registry_match=bool(topic.registry_key),
+            diagnostic_conclusion=False,
+            expert_review_required=True,
+        )
 
     def _configured_model_answer(
         self, topic: CancerTopic, question: str, language: str
