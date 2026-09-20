@@ -230,7 +230,12 @@ class CancerInformationService:
             or os.getenv("GEMINI_BASE_URL")
             or "https://api.openai.com/v1"
         ).rstrip("/")
-        model = os.getenv("ONCOAEGIS_CANCER_AI_MODEL") or os.getenv("GEMINI_MODEL") or "gpt-4o-mini"
+        configured_model = os.getenv("ONCOAEGIS_CANCER_AI_MODEL") or os.getenv("GEMINI_MODEL")
+        model = configured_model or (
+            "gemini-2.5-flash"
+            if "generativelanguage.googleapis.com" in base_url
+            else "gpt-4o-mini"
+        )
         prompt_language = "Bangla" if language == "bn" else "English"
         system = (
             "You are Onco Aegis AI, a careful cancer-information educator. "
