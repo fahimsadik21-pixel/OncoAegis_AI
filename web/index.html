@@ -9,7 +9,7 @@
       content="Onco Aegis AI provides clear, source-aware cancer information for education and discussion with a care team."
     />
     <title>Onco Aegis AI &mdash; Cancer information, made clearer</title>
-    <link rel="stylesheet" href="/app/assets/styles.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
   </head>
   <body>
     <div class="ambient ambient--one" aria-hidden="true"></div>
@@ -346,7 +346,12 @@
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="/app/assets/app.js" defer></script>
+    <script>
+      document.querySelectorAll('img[src^="/app/assets/"]').forEach((image) => {
+        image.src = image.src.replace('/app/assets/', '/assets/');
+      });
+    </script>
+    <script src="assets/app.js" defer></script>
   </body>
 </html>
 

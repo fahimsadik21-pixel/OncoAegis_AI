@@ -210,6 +210,11 @@ if WEB_ROOT.is_dir():
         StaticFiles(directory=str(WEB_ROOT)),
         name="web-assets",
     )
+    app.mount(
+        "/assets",
+        StaticFiles(directory=str(WEB_ROOT)),
+        name="frontend-assets",
+    )
 
     @app.get("/app", include_in_schema=False)
     @app.get("/app/", include_in_schema=False)
