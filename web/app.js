@@ -242,12 +242,25 @@ async function api(path, options = {}, retry = true) {
     const refreshed = await refreshSession();
     if (refreshed) return api(path, options, false);
   }
-  const payload = await response.json().catch(() => ({}));
+  const responseText = await response.text();
+  let payload = {};
+  try {
+    payload = responseText ? JSON.parse(responseText) : {};
+  } catch {
+    payload = {};
+  }
   if (!response.ok) {
     const detail = Array.isArray(payload.detail)
       ? payload.detail.map((item) => item.msg || "Invalid value").join(" ")
       : payload.detail;
-    throw new Error(detail || "The request could not be completed.");
+    if (detail) throw new Error(detail);
+    if (response.status === 502 || response.status === 503 || response.status === 504) {
+      throw new Error(
+        `The image-analysis service restarted or reached a hosting limit (HTTP ${response.status}). ` +
+        "For 3D CT/MRI analysis, use a Railway service with at least 2 GB memory and then try again."
+      );
+    }
+    throw new Error(`The request could not be completed (HTTP ${response.status}).`);
   }
   return payload;
 }

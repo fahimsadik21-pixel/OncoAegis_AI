@@ -7,7 +7,10 @@ import unittest
 from unittest.mock import patch
 
 from app.deployment.checkpoint_bootstrap import checkpoint_is_ready
-from app.deployment.resource_policy import model_eviction_enabled
+from app.deployment.resource_policy import (
+    hosted_memory_error,
+    model_eviction_enabled,
+)
 from app.registry.model_registry import ModelSpec
 
 
@@ -82,6 +85,52 @@ class TestDeploymentPolicy(unittest.TestCase):
     def test_local_platform_keeps_models_warm_by_default(self):
         with patch.dict(os.environ, {}, clear=True):
             self.assertFalse(model_eviction_enabled())
+
+    def test_small_hosted_service_rejects_heavy_3d_model_before_inference(self):
+        spec = ModelSpec(
+            model_id="temporary_pancreas_model",
+            name="Temporary pancreas model",
+            modality="CT",
+            organ="pancreas",
+            tasks=("segmentation",),
+            input_type="3D abdominal pancreas CT volume",
+            outputs=("mask",),
+            checkpoint_path="checkpoint.pt",
+            model_kind="Two-stage 3D U-Net pipeline",
+        )
+        with patch.dict(
+            os.environ,
+            {"RAILWAY_ENVIRONMENT": "production"},
+            clear=True,
+        ), patch(
+            "app.deployment.resource_policy.hosted_memory_limit_mb",
+            return_value=512,
+        ):
+            message = hosted_memory_error(spec)
+        self.assertIsNotNone(message)
+        self.assertIn("2048 MB", message or "")
+
+    def test_2d_model_is_not_blocked_by_hosted_3d_memory_guard(self):
+        spec = ModelSpec(
+            model_id="temporary_breast_model",
+            name="Temporary breast model",
+            modality="ULTRASOUND",
+            organ="breast",
+            tasks=("segmentation",),
+            input_type="grayscale ultrasound image",
+            outputs=("mask",),
+            checkpoint_path="checkpoint.pt",
+            model_kind="2D U-Net",
+        )
+        with patch.dict(
+            os.environ,
+            {"RAILWAY_ENVIRONMENT": "production"},
+            clear=True,
+        ), patch(
+            "app.deployment.resource_policy.hosted_memory_limit_mb",
+            return_value=512,
+        ):
+            self.assertIsNone(hosted_memory_error(spec))
 
 
 if __name__ == "__main__":
