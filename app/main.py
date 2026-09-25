@@ -586,7 +586,6 @@ async def analyze_specialist(
             raise SpecialistInputError(
                 f"Unknown specialist model: {model_id}"
             )
-        ensure_model_checkpoint(model_id)
         if task or cancer_type:
             decision = route_specialist_model(
                 modality=modality or model_spec.modality,
@@ -610,6 +609,10 @@ async def analyze_specialist(
                 organ=organ,
                 spacing_mm=parsed_spacing,
             )
+            # Verify the file contract before downloading/loading a model.
+            # A wrong image type should never be hidden behind a checkpoint
+            # availability error.
+            ensure_model_checkpoint(model_id)
             result = AnalysisOrchestrator().execute_analysis(
                 model_id=model_id,
                 input_data=normalized.data,
@@ -619,8 +622,9 @@ async def analyze_specialist(
         raise HTTPException(
             status_code=503,
             detail=(
-                "The selected research model is unavailable in this deployment. "
-                "Choose another route or try again after its checkpoint is published."
+                f"{model_spec.name} cannot run in this deployment because its "
+                "trained checkpoint could not be retrieved. Your file format was "
+                f"checked. Required model input: {model_spec.input_type}."
             ),
         ) from exc
     except SpecialistInputError as exc:

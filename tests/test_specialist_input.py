@@ -106,24 +106,44 @@ class TestSpecialistInput(unittest.TestCase):
         self.assertEqual(normalized.metadata["spacing_source"], "NIfTI header")
         self.assertNotIn("filename", normalized.metadata)
 
-    def test_ct_and_mri_accept_patient_held_raster_exports(self):
+    def test_ct_and_mri_reject_single_image_exports(self):
         image = UploadedSpecialistFile("scan.jpg", _png_bytes())
         with tempfile.TemporaryDirectory() as workspace:
-            ct = normalize_specialist_input(
-                model_id="luna16_lung_segmentation",
-                files=[image],
-                workspace=workspace,
-            )
-            mri = normalize_specialist_input(
-                model_id="msd_brain_tumor_segmentation",
-                files=[image],
-                workspace=workspace,
-            )
-        self.assertEqual(ct.data.shape, (64, 64, 64))
-        self.assertEqual(mri.data.shape, (64, 64, 64, 4))
-        self.assertTrue(ct.metadata["single_slice_approximation"])
-        self.assertTrue(mri.metadata["single_slice_approximation"])
-        self.assertEqual(ct.metadata["input_format"], "raster_scan_export")
+            with self.assertRaisesRegex(
+                SpecialistInputError,
+                "3D CT data",
+            ):
+                normalize_specialist_input(
+                    model_id="luna16_lung_segmentation",
+                    files=[image],
+                    workspace=workspace,
+                )
+            with self.assertRaisesRegex(
+                SpecialistInputError,
+                "4-channel 3D brain MRI volume",
+            ):
+                normalize_specialist_input(
+                    model_id="msd_brain_tumor_segmentation",
+                    files=[image],
+                    workspace=workspace,
+                )
+
+    def test_two_dimensional_models_reject_volume_files(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            with self.assertRaisesRegex(
+                SpecialistInputError,
+                "single grayscale thyroid ultrasound image",
+            ):
+                normalize_specialist_input(
+                    model_id="tn3k_thyroid_nodule_segmentation",
+                    files=[
+                        UploadedSpecialistFile(
+                            "thyroid.nii.gz",
+                            _nifti_bytes(),
+                        )
+                    ],
+                    workspace=workspace,
+                )
 
     def test_invalid_volume_and_flow_schema_are_rejected(self):
         bad_volume = BytesIO()

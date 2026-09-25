@@ -38,6 +38,10 @@ MAX_VOLUME_ELEMENTS = 128_000_000
 MAX_RASTER_PIXELS = 16_000_000
 MAX_FLOW_EVENTS_PER_TUBE = 2_000_000
 
+RASTER_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".bmp"}
+DICOM_SUFFIXES = {"", ".dcm", ".dicom", ".ima"}
+VOLUME_SUFFIXES = {".npy", ".nii", ".nii.gz"}
+
 FLOW_COLUMNS = (
     "FS Lin",
     "SS Log",
@@ -217,27 +221,28 @@ def _decode_rgb(file: UploadedSpecialistFile) -> np.ndarray:
     return value
 
 
-def _raster_to_single_slice_volume(
-    raster: np.ndarray,
-    *,
-    modality: str,
-) -> np.ndarray:
-    """Adapt an ordinary exported scan image to the 3D model contract.
+def _volume_requirement(spec: ModelSpec) -> str:
+    """Describe the real acquisition format needed by a 3D specialist."""
 
-    This is intentionally labelled as a single-slice approximation in the
-    returned metadata.  It makes patient-held PNG/JPEG exports usable without
-    pretending that one screenshot contains the full CT/MRI series.
-    """
-
-    grayscale = np.asarray(
-        Image.fromarray(raster).convert("L").resize((64, 64)),
-        dtype=np.float32,
+    if spec.modality == "MRI":
+        return (
+            f"{spec.name} was trained on a 4-channel 3D brain MRI volume. "
+            "Upload one original .nii/.nii.gz NIfTI volume, or a 4D .npy "
+            "array; JPG/PNG screenshots cannot be analysed by this model."
+        )
+    return (
+        f"{spec.name} was trained on 3D CT data. Upload the complete CT "
+        "DICOM series, one 3D .nii/.nii.gz NIfTI volume, or one 3D .npy "
+        "array; JPG/PNG screenshots cannot be analysed by this model."
     )
-    grayscale /= 255.0
-    volume = np.repeat(grayscale[:, :, np.newaxis], 64, axis=2)
-    if modality == "MRI":
-        return np.repeat(volume[:, :, :, np.newaxis], 4, axis=3)
-    return np.moveaxis(volume, 2, 0)
+
+
+def _raster_requirement(spec: ModelSpec) -> str:
+    return (
+        f"{spec.name} was trained on a single {spec.input_type}. "
+        "Upload one readable JPG, JPEG, PNG, WEBP, or BMP image from that "
+        "imaging modality."
+    )
 
 
 def _validate_flow_csv(file: UploadedSpecialistFile) -> int:
@@ -339,9 +344,8 @@ def normalize_specialist_input(
     }
 
     if spec.modality == "CT":
-        dicom_suffixes = {"", ".dcm", ".dicom", ".ima"}
         looks_like_dicom_series = all(
-            suffix in dicom_suffixes for suffix in suffixes
+            suffix in DICOM_SUFFIXES for suffix in suffixes
         )
         if looks_like_dicom_series:
             try:
@@ -380,23 +384,10 @@ def normalize_specialist_input(
             return NormalizedSpecialistInput(volume, safe_metadata)
 
         file = _single_file(entries)
-        if _suffix(file.name) in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
-            raster = _decode_rgb(file)
-            volume = _raster_to_single_slice_volume(raster, modality="CT")
-            _validate_model_volume_shape(spec, volume)
-            safe_metadata.update(
-                {
-                    "input_format": "raster_scan_export",
-                    "shape": volume.shape,
-                    "source_image_shape": raster.shape,
-                    "single_slice_approximation": True,
-                    "spacing_source": "not_available_from_image",
-                    "intensity_units": "display_pixels",
-                    "hu_conversion_applied": False,
-                }
-            )
-            return NormalizedSpecialistInput(volume, safe_metadata)
-        if _suffix(file.name) == ".npy":
+        suffix = _suffix(file.name)
+        if suffix in RASTER_SUFFIXES or suffix not in VOLUME_SUFFIXES:
+            raise SpecialistInputError(_volume_requirement(spec))
+        if suffix == ".npy":
             volume = _load_numpy(file)
             _validate_model_volume_shape(spec, volume)
             safe_metadata.update(
@@ -411,7 +402,7 @@ def normalize_specialist_input(
             if spacing_mm is not None:
                 safe_metadata["spacing_mm"] = spacing_mm
             return NormalizedSpecialistInput(volume, safe_metadata)
-        if _suffix(file.name) == ".nii.gz" or _suffix(file.name) == ".nii":
+        if suffix in {".nii", ".nii.gz"}:
             volume, nifti_spacing = _load_nifti(file, workspace_path)
             _validate_model_volume_shape(spec, volume)
             safe_metadata.update(
@@ -425,28 +416,14 @@ def normalize_specialist_input(
                 }
             )
             return NormalizedSpecialistInput(volume, safe_metadata)
-        raise SpecialistInputError(
-            "CT input must be a DICOM series, .npy volume, or NIfTI volume"
-        )
+        raise SpecialistInputError(_volume_requirement(spec))
 
     if spec.modality == "MRI":
         file = _single_file(entries)
-        if _suffix(file.name) in {".png", ".jpg", ".jpeg", ".webp", ".bmp"}:
-            raster = _decode_rgb(file)
-            volume = _raster_to_single_slice_volume(raster, modality="MRI")
-            _validate_model_volume_shape(spec, volume)
-            safe_metadata.update(
-                {
-                    "input_format": "raster_scan_export",
-                    "shape": volume.shape,
-                    "source_image_shape": raster.shape,
-                    "single_slice_approximation": True,
-                    "spacing_source": "not_available_from_image",
-                    "intensity_units": "display_pixels",
-                }
-            )
-            return NormalizedSpecialistInput(volume, safe_metadata)
-        if _suffix(file.name) == ".npy":
+        suffix = _suffix(file.name)
+        if suffix in RASTER_SUFFIXES or suffix not in VOLUME_SUFFIXES:
+            raise SpecialistInputError(_volume_requirement(spec))
+        if suffix == ".npy":
             volume = _load_numpy(file)
             _validate_model_volume_shape(spec, volume)
             safe_metadata.update(
@@ -460,7 +437,7 @@ def normalize_specialist_input(
             if spacing_mm is not None:
                 safe_metadata["spacing_mm"] = spacing_mm
             return NormalizedSpecialistInput(volume, safe_metadata)
-        if _suffix(file.name) == ".nii.gz" or _suffix(file.name) == ".nii":
+        if suffix in {".nii", ".nii.gz"}:
             volume, nifti_spacing = _load_nifti(file, workspace_path)
             _validate_model_volume_shape(spec, volume)
             safe_metadata.update(
@@ -473,10 +450,12 @@ def normalize_specialist_input(
                 }
             )
             return NormalizedSpecialistInput(volume, safe_metadata)
-        raise SpecialistInputError("MRI input must be a NumPy or NIfTI volume")
+        raise SpecialistInputError(_volume_requirement(spec))
 
     if spec.modality in {"ULTRASOUND", "DERMOSCOPY", "MICROSCOPY"}:
         file = _single_file(entries)
+        if _suffix(file.name) not in RASTER_SUFFIXES:
+            raise SpecialistInputError(_raster_requirement(spec))
         raster = _decode_rgb(file)
         safe_metadata.update(
             {

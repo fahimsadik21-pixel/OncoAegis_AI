@@ -46,6 +46,114 @@ Object.assign(analysisModels, {
   flowcap_aml_patient_classifier: { modality: "FLOW_CYTOMETRY", organ: "blood", task: "classification", label: "Flow cytometry / Blood / Classification" },
 });
 
+const imageInputContracts = {
+  busi_breast_segmentation: {
+    kind: "raster", accept: ".png,.jpg,.jpeg,.webp,.bmp,image/png,image/jpeg,image/webp,image/bmp",
+    extensions: [".png", ".jpg", ".jpeg", ".webp", ".bmp"],
+    guidance: "Required: one grayscale breast ultrasound JPG/PNG/JPEG. Mammogram, CT, MRI, pathology slides, and phone photos are not valid BUSI inputs.",
+  },
+  busi_breast_classifier: {
+    kind: "raster", accept: ".png,.jpg,.jpeg,.webp,.bmp,image/png,image/jpeg,image/webp,image/bmp",
+    extensions: [".png", ".jpg", ".jpeg", ".webp", ".bmp"],
+    guidance: "Required: one grayscale breast ultrasound JPG/PNG/JPEG. Mammogram, CT, MRI, pathology slides, and phone photos are not valid BUSI inputs.",
+  },
+  tn3k_thyroid_nodule_segmentation: {
+    kind: "raster", accept: ".png,.jpg,.jpeg,.webp,.bmp,image/png,image/jpeg,image/webp,image/bmp",
+    extensions: [".png", ".jpg", ".jpeg", ".webp", ".bmp"],
+    guidance: "Required: one thyroid ultrasound JPG/PNG/JPEG. Upload an ultrasound image, not a CT, MRI, pathology slide, or general neck photo.",
+  },
+  isic2016_skin_lesion_segmentation: {
+    kind: "raster", accept: ".png,.jpg,.jpeg,.webp,.bmp,image/png,image/jpeg,image/webp,image/bmp",
+    extensions: [".png", ".jpg", ".jpeg", ".webp", ".bmp"],
+    guidance: "Required: one close, well-lit dermoscopy or skin-lesion JPG/PNG/JPEG. CT, MRI, ultrasound, and pathology images are not valid ISIC inputs.",
+  },
+  cnmc2019_all_cell_classifier: {
+    kind: "raster", accept: ".png,.jpg,.jpeg,.webp,.bmp,image/png,image/jpeg,image/webp,image/bmp",
+    extensions: [".png", ".jpg", ".jpeg", ".webp", ".bmp"],
+    guidance: "Required: one RGB blood-cell microscopy JPG/PNG/JPEG. A blood report, CT, MRI, or ordinary photograph cannot be classified by this model.",
+  },
+  msd_brain_tumor_segmentation: {
+    kind: "mri", accept: ".nii,.nii.gz,.npy,application/octet-stream",
+    extensions: [".nii", ".nii.gz", ".npy"],
+    guidance: "Required: one original 4-channel brain MRI .nii/.nii.gz NIfTI or 4D .npy volume. A JPG/PNG MRI screenshot is not a valid model input.",
+  },
+  luna16_lung_segmentation: {
+    kind: "ct", accept: ".dcm,.dicom,.ima,.nii,.nii.gz,.npy,application/dicom,application/octet-stream",
+    extensions: [".dcm", ".dicom", ".ima", ".nii", ".nii.gz", ".npy"],
+    guidance: "Required: full chest CT DICOM series, 3D CT .nii/.nii.gz NIfTI, or 3D .npy volume. A JPG/PNG CT screenshot is not a valid model input.",
+  },
+  luna16_nodule_detector: {
+    kind: "ct", accept: ".dcm,.dicom,.ima,.nii,.nii.gz,.npy,application/dicom,application/octet-stream",
+    extensions: [".dcm", ".dicom", ".ima", ".nii", ".nii.gz", ".npy"],
+    guidance: "Required: a nodule-centred chest CT source volume or DICOM series. A JPG/PNG screenshot is not a valid model input.",
+  },
+  ircadb01_liver_tumor_segmentation: {
+    kind: "ct", accept: ".dcm,.dicom,.ima,.nii,.nii.gz,.npy,application/dicom,application/octet-stream",
+    extensions: [".dcm", ".dicom", ".ima", ".nii", ".nii.gz", ".npy"],
+    guidance: "Required: full liver CT DICOM series, 3D CT .nii/.nii.gz NIfTI, or 3D .npy volume. JPG/PNG screenshots are not valid liver CT inputs.",
+  },
+  msd_pancreas_segmentation: {
+    kind: "ct", accept: ".dcm,.dicom,.ima,.nii,.nii.gz,.npy,application/dicom,application/octet-stream",
+    extensions: [".dcm", ".dicom", ".ima", ".nii", ".nii.gz", ".npy"],
+    guidance: "Required: full abdominal pancreas CT DICOM series, 3D CT .nii/.nii.gz NIfTI, or 3D .npy volume. JPG/PNG screenshots are not valid inputs.",
+  },
+  msd_pancreas_tumor_segmentation: {
+    kind: "ct", accept: ".dcm,.dicom,.ima,.nii,.nii.gz,.npy,application/dicom,application/octet-stream",
+    extensions: [".dcm", ".dicom", ".ima", ".nii", ".nii.gz", ".npy"],
+    guidance: "Required: full abdominal pancreas CT DICOM series, 3D CT .nii/.nii.gz NIfTI, or 3D .npy volume. JPG/PNG screenshots are not valid inputs.",
+  },
+  msd_colon_tumor_segmentation: {
+    kind: "ct", accept: ".dcm,.dicom,.ima,.nii,.nii.gz,.npy,application/dicom,application/octet-stream",
+    extensions: [".dcm", ".dicom", ".ima", ".nii", ".nii.gz", ".npy"],
+    guidance: "Required: full abdominal colon CT DICOM series, 3D CT .nii/.nii.gz NIfTI, or 3D .npy volume. JPG/PNG screenshots are not valid inputs.",
+  },
+};
+
+const DEFAULT_IMAGE_ACCEPT = "image/*,.dcm,.dicom,.ima,.nii,.nii.gz,.npy,.csv";
+const MAX_CLIENT_IMAGE_FILES = 1024;
+
+function fileSuffix(file) {
+  const filename = String(file?.name || "").toLowerCase();
+  if (filename.endsWith(".nii.gz")) return ".nii.gz";
+  const index = filename.lastIndexOf(".");
+  return index >= 0 ? filename.slice(index) : "";
+}
+
+function imageContract(modelId) {
+  return imageInputContracts[modelId] || null;
+}
+
+function imageFilesError(modelId, files) {
+  const contract = imageContract(modelId);
+  const selected = [...files];
+  if (!contract || !selected.length) return "";
+  if (selected.length > MAX_CLIENT_IMAGE_FILES) {
+    return `This route accepts up to ${MAX_CLIENT_IMAGE_FILES} image-series files at a time.`;
+  }
+  const unsupported = selected.find((file) => !contract.extensions.includes(fileSuffix(file)));
+  if (unsupported) {
+    return `“${unsupported.name}” is not a relevant input for this route. ${contract.guidance}`;
+  }
+  if (contract.kind !== "ct" && selected.length !== 1) {
+    return `This route accepts exactly one file. ${contract.guidance}`;
+  }
+  if (contract.kind === "ct" && selected.length > 1) {
+    const allDicom = selected.every((file) => [".dcm", ".dicom", ".ima", ""].includes(fileSuffix(file)));
+    if (!allDicom) {
+      return `Upload either one 3D NIfTI/NumPy volume or every slice from one CT DICOM series. ${contract.guidance}`;
+    }
+  }
+  return "";
+}
+
+function applyImageContract(modelId, input, guidanceTarget = null) {
+  const contract = imageContract(modelId);
+  input.accept = contract?.accept || DEFAULT_IMAGE_ACCEPT;
+  if (guidanceTarget) {
+    guidanceTarget.textContent = contract?.guidance || "Choose an image route to see the exact trained input type.";
+  }
+}
+
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 
@@ -110,7 +218,7 @@ function errorMessage(error) {
   if (error instanceof Error && error.message) {
     const message = error.message;
     if (message.includes("selected research model is unavailable")) {
-      return "This image route is temporarily unavailable in the current deployment. Please choose another route or try again later.";
+      return "This model's trained checkpoint is not available on Railway yet. Your uploaded file may still be the correct type; use the route guidance above and try again after the checkpoint is published.";
     }
     if (message.toLowerCase().includes("memory")) {
       return "This analysis needs more hosting memory right now. Please try again shortly or choose a lighter image route.";
@@ -414,28 +522,39 @@ function friendlyDocumentFields(fields) {
 function renderAnalysisFiles() {
   const list = $("#analysis-file-list");
   if (!list) return;
+  const visibleFiles = state.analysisFiles.slice(0, 3);
   list.innerHTML = state.analysisFiles.length
-    ? state.analysisFiles.map((file, index) => `<span class="file-chip"><span>${escapeHtml(file.name)}</span><small>${Math.ceil(file.size / 1024)} KB</small><button type="button" data-remove-analysis-file="${index}" aria-label="Remove ${escapeHtml(file.name)}">×</button></span>`).join("")
+    ? `${visibleFiles.map((file, index) => `<span class="file-chip"><span>${escapeHtml(file.name)}</span><small>${Math.ceil(file.size / 1024)} KB</small><button type="button" data-remove-analysis-file="${index}" aria-label="Remove ${escapeHtml(file.name)}">×</button></span>`).join("")}${state.analysisFiles.length > visibleFiles.length ? `<span class="file-chip"><span>+ ${state.analysisFiles.length - visibleFiles.length} more series files</span></span>` : ""}<button class="file-chip" type="button" data-clear-analysis-files>Clear all</button>`
     : "";
   $$('[data-remove-analysis-file]').forEach((button) => button.addEventListener("click", () => {
     state.analysisFiles.splice(Number(button.dataset.removeAnalysisFile), 1);
     $("#analysis-files").value = "";
     renderAnalysisFiles();
   }));
+  $("[data-clear-analysis-files]")?.addEventListener("click", () => {
+    state.analysisFiles = [];
+    $("#analysis-files").value = "";
+    $("#analysis-error").textContent = "";
+    renderAnalysisFiles();
+  });
   renderAnalysisAccess();
 }
 
 function setAnalysisFiles(files) {
-  state.analysisFiles = [...files].slice(0, 12);
+  const selected = [...files];
+  state.analysisFiles = selected.slice(0, MAX_CLIENT_IMAGE_FILES);
   renderAnalysisFiles();
-  $("#analysis-error").textContent = "";
+  $("#analysis-error").textContent = selected.length > MAX_CLIENT_IMAGE_FILES
+    ? `Only the first ${MAX_CLIENT_IMAGE_FILES} files were kept for this image series.`
+    : imageFilesError($("#analysis-model").value, state.analysisFiles);
 }
 
 function renderChatFiles() {
   const list = $("#chat-file-list");
   if (!list) return;
+  const visibleFiles = state.chatFiles.slice(0, 3);
   list.innerHTML = state.chatFiles.length
-    ? state.chatFiles.map((file, index) => `<span class="chat-file-chip"><span>${escapeHtml(file.name)}</span><small>${Math.ceil(file.size / 1024)} KB</small><button type="button" data-remove-chat-file="${index}">×</button></span>`).join("")
+    ? `${visibleFiles.map((file, index) => `<span class="chat-file-chip"><span>${escapeHtml(file.name)}</span><small>${Math.ceil(file.size / 1024)} KB</small><button type="button" data-remove-chat-file="${index}">×</button></span>`).join("")}${state.chatFiles.length > visibleFiles.length ? `<span class="chat-file-chip"><span>+ ${state.chatFiles.length - visibleFiles.length} more series files</span></span>` : ""}<button class="chat-file-chip" type="button" data-clear-chat-files>Clear all</button>`
     : "";
   $$('[data-remove-chat-file]').forEach((button) => {
     button.textContent = "×";
@@ -446,12 +565,21 @@ function renderChatFiles() {
       renderChatFiles();
     });
   });
+  $("[data-clear-chat-files]")?.addEventListener("click", () => {
+    state.chatFiles = [];
+    $("#chat-files").value = "";
+    $("#question-error").textContent = "";
+    renderChatFiles();
+  });
 }
 
 function setChatFiles(files) {
-  state.chatFiles = [...files].slice(0, 12);
+  const selected = [...files];
+  state.chatFiles = selected.slice(0, MAX_CLIENT_IMAGE_FILES);
   renderChatFiles();
-  $("#question-error").textContent = "";
+  $("#question-error").textContent = selected.length > MAX_CLIENT_IMAGE_FILES
+    ? `Only the first ${MAX_CLIENT_IMAGE_FILES} files were kept for this image series.`
+    : imageFilesError($("#chat-model").value, state.chatFiles);
 }
 
 function renderChatDocument() {
@@ -611,6 +739,11 @@ async function submitAnalysis(event) {
     return;
   }
   const model = selectedAnalysisModel();
+  const inputError = imageFilesError($("#analysis-model").value, state.analysisFiles);
+  if (inputError) {
+    error.textContent = inputError;
+    return;
+  }
   const body = new FormData();
   body.append("model_id", $("#analysis-model").value);
   body.append("modality", model.modality);
@@ -635,8 +768,14 @@ async function submitAnalysis(event) {
 }
 
 function updateAnalysisModel() {
-  $("#analysis-meta").textContent = selectedAnalysisModel().label;
-  $("#analysis-error").textContent = "";
+  const modelId = $("#analysis-model").value;
+  const model = selectedAnalysisModel();
+  const contract = imageContract(modelId);
+  $("#analysis-meta").textContent = contract
+    ? `${model.label} — ${contract.guidance}`
+    : model.label;
+  applyImageContract(modelId, $("#analysis-files"));
+  $("#analysis-error").textContent = imageFilesError(modelId, state.analysisFiles);
 }
 
 async function refreshSession() {
@@ -842,6 +981,11 @@ async function submitQuestion(event) {
       return;
     }
     const model = analysisModels[modelId];
+    const inputError = imageFilesError(modelId, state.chatFiles);
+    if (inputError) {
+      error.textContent = inputError;
+      return;
+    }
     const body = new FormData();
     body.append("model_id", modelId);
     body.append("modality", model.modality);
@@ -897,13 +1041,14 @@ function selectLanguage(language) {
 
 function selectCoverage(modelId) {
   const model = analysisModels[modelId];
-  if (!model) return;
+  if (!model) {
+    applyImageContract("", $("#chat-files"), $("#upload-guidance"));
+    return;
+  }
   $("#chat-model").value = modelId;
-  const guidance = {
-    busi_breast_segmentation: "Best result: grayscale breast ultrasound JPG/PNG.", busi_breast_classifier: "Best result: grayscale breast ultrasound JPG/PNG.", tn3k_thyroid_nodule_segmentation: "Best result: thyroid ultrasound JPG/PNG.", isic2016_skin_lesion_segmentation: "Best result: close, well-lit dermoscopy JPG/PNG.", cnmc2019_all_cell_classifier: "Best result: blood-cell microscopy JPG/PNG.", msd_brain_tumor_segmentation: "Best result: original 4-channel brain MRI .nii/.nii.gz volume.", luna16_lung_segmentation: "Best result: processed CT/DICOM or NIfTI source data.", luna16_nodule_detector: "Best result: nodule-centred CT patch or source DICOM/NIfTI.", ircadb01_liver_tumor_segmentation: "Best result: liver CT DICOM series or 3D NIfTI.", msd_pancreas_segmentation: "Best result: pancreas CT DICOM series or 3D NIfTI.", msd_pancreas_tumor_segmentation: "Best result: pancreas CT DICOM series or 3D NIfTI.", msd_colon_tumor_segmentation: "Best result: abdominal colon CT DICOM series or 3D NIfTI."
-  };
-  $("#upload-guidance").textContent = guidance[modelId] || "Choose a route to see the best supported file type.";
+  applyImageContract(modelId, $("#chat-files"), $("#upload-guidance"));
   $$('[data-coverage-model]').forEach((button) => button.classList.toggle("is-selected", button.dataset.coverageModel === modelId));
+  $("#question-error").textContent = imageFilesError(modelId, state.chatFiles);
   $("#chat-model").focus();
 }
 
