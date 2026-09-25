@@ -29,6 +29,9 @@ class DocumentAnalysisResponse(BaseModel):
     extraction_quality: str = "limited_rule_based"
     ocr_status: str = "not_required"
     status: str = "document_evidence_extracted"
+    plain_language_summary: str = ""
+    key_findings: list[str] = Field(default_factory=list)
+    questions_for_care_team: list[str] = Field(default_factory=list)
     next_stage: str = "evidence_fusion"
 
 

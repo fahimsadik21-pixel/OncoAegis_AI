@@ -6,9 +6,7 @@ from app.core.model_router import (
     route_specialist_model,
 )
 
-from app.core.specialist_registry import (
-    get_or_create_specialist,
-)
+from app.core.specialist_factory import get_specialist_class
 
 from app.adapters.registry import (
     get_adapter,
@@ -66,11 +64,6 @@ class AnalysisOrchestrator:
         model_id = route.selected_model_id
 
 
-        specialist = get_or_create_specialist(
-            model_id
-        )
-
-
         adapter = get_adapter(
             model_id
         )
@@ -84,9 +77,7 @@ class AnalysisOrchestrator:
 
             "route": route.to_dict(),
 
-            "specialist": type(
-                specialist
-            ).__name__,
+            "specialist": get_specialist_class(model_id).__name__,
 
             "adapter": adapter.metadata(),
 

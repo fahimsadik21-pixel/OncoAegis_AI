@@ -29,7 +29,10 @@ def cancer_information_status() -> dict[str, object]:
     import os
 
     configured = bool(
-        os.getenv("ONCOAEGIS_CANCER_AI_API_KEY") or os.getenv("OPENAI_API_KEY")
+        os.getenv("ONCOAEGIS_CANCER_AI_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+        or os.getenv("GEMINI_API_KEY")
+        or os.getenv("GOOGLE_API_KEY")
     )
     return {
         "status": "configured_ai_available" if configured else "safe_fallback_available",

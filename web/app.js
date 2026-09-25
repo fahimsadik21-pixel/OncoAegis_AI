@@ -17,6 +17,8 @@ const state = {
   conversationMessages: [],
   history: [],
   historyLoaded: false,
+  loadingTimer: null,
+  loadingStage: 0,
 };
 
 const analysisModels = {
@@ -105,7 +107,16 @@ function safeSourceUrl(value) {
 }
 
 function errorMessage(error) {
-  if (error instanceof Error && error.message) return error.message;
+  if (error instanceof Error && error.message) {
+    const message = error.message;
+    if (message.includes("selected research model is unavailable")) {
+      return "This image route is temporarily unavailable in the current deployment. Please choose another route or try again later.";
+    }
+    if (message.toLowerCase().includes("memory")) {
+      return "This analysis needs more hosting memory right now. Please try again shortly or choose a lighter image route.";
+    }
+    return message;
+  }
   return "The request could not be completed. Please try again.";
 }
 
@@ -196,6 +207,29 @@ function renderHistoryList() {
   $$('[data-history-id]').forEach((button) => button.addEventListener("click", () => openConversation(button.dataset.historyId)));
   $$('[data-history-select]').forEach((box) => box.addEventListener("change", updateHistorySelection));
   updateHistorySelection();
+  renderWorkspaceRail();
+}
+
+function renderWorkspaceRail() {
+  const target = $("#rail-history");
+  if (!target) return;
+  if (!state.user) {
+    target.innerHTML = "<p>Sign in to keep your conversations and image reviews together.</p>";
+    return;
+  }
+  if (!state.history.length) {
+    target.innerHTML = "<p>No saved conversations yet. Your next answer can stay here securely.</p>";
+    return;
+  }
+  target.innerHTML = state.history.slice(0, 4).map((item) => {
+    const date = item.updated_at
+      ? new Date(item.updated_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+      : "Saved";
+    return `<button type="button" data-rail-history-id="${escapeHtml(item.conversation_id)}"><span aria-hidden="true">◌</span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(date)}</small></button>`;
+  }).join("");
+  $$('[data-rail-history-id]').forEach((button) => {
+    button.addEventListener("click", () => openConversation(button.dataset.railHistoryId));
+  });
 }
 
 function updateHistorySelection() {
@@ -381,8 +415,13 @@ function renderAnalysisFiles() {
   const list = $("#analysis-file-list");
   if (!list) return;
   list.innerHTML = state.analysisFiles.length
-    ? state.analysisFiles.map((file) => `<span class="file-chip"><span>${escapeHtml(file.name)}</span><small>${Math.ceil(file.size / 1024)} KB</small></span>`).join("")
+    ? state.analysisFiles.map((file, index) => `<span class="file-chip"><span>${escapeHtml(file.name)}</span><small>${Math.ceil(file.size / 1024)} KB</small><button type="button" data-remove-analysis-file="${index}" aria-label="Remove ${escapeHtml(file.name)}">×</button></span>`).join("")
     : "";
+  $$('[data-remove-analysis-file]').forEach((button) => button.addEventListener("click", () => {
+    state.analysisFiles.splice(Number(button.dataset.removeAnalysisFile), 1);
+    $("#analysis-files").value = "";
+    renderAnalysisFiles();
+  }));
   renderAnalysisAccess();
 }
 
@@ -398,7 +437,15 @@ function renderChatFiles() {
   list.innerHTML = state.chatFiles.length
     ? state.chatFiles.map((file, index) => `<span class="chat-file-chip"><span>${escapeHtml(file.name)}</span><small>${Math.ceil(file.size / 1024)} KB</small><button type="button" data-remove-chat-file="${index}">×</button></span>`).join("")
     : "";
-  $$('[data-remove-chat-file]').forEach((button) => button.addEventListener("click", () => { state.chatFiles.splice(Number(button.dataset.removeChatFile), 1); $("#chat-files").value = ""; renderChatFiles(); }));
+  $$('[data-remove-chat-file]').forEach((button) => {
+    button.textContent = "×";
+    button.setAttribute("aria-label", "Remove attached image");
+    button.addEventListener("click", () => {
+      state.chatFiles.splice(Number(button.dataset.removeChatFile), 1);
+      $("#chat-files").value = "";
+      renderChatFiles();
+    });
+  });
 }
 
 function setChatFiles(files) {
@@ -413,7 +460,16 @@ function renderChatDocument() {
   list.innerHTML = state.chatDocument
     ? `<span class="chat-file-chip"><span>${escapeHtml(state.chatDocument.name)}</span><small>${Math.ceil(state.chatDocument.size / 1024)} KB</small><button type="button" data-remove-chat-document>×</button></span>`
     : "";
-  $("[data-remove-chat-document]")?.addEventListener("click", () => { state.chatDocument = null; $("#chat-document").value = ""; renderChatDocument(); });
+  const removeDocument = $("[data-remove-chat-document]");
+  if (removeDocument) {
+    removeDocument.textContent = "×";
+    removeDocument.setAttribute("aria-label", "Remove attached report");
+    removeDocument.addEventListener("click", () => {
+      state.chatDocument = null;
+      $("#chat-document").value = "";
+      renderChatDocument();
+    });
+  }
 }
 
 function legacyRenderDocumentAnalysis(response, topic) {
@@ -451,24 +507,24 @@ function analysisText(value) {
 
 function renderDocumentAnalysis(response, topic) {
   const reportType = humanizeKey(response.document_type || "clinical report");
-  const evidence = Array.isArray(response.evidence) ? response.evidence.map(humanizeFinding).join("\n") : "";
+  const evidence = Array.isArray(response.key_findings) && response.key_findings.length
+    ? response.key_findings.join("\n")
+    : (Array.isArray(response.evidence) ? response.evidence.map(humanizeFinding).join("\n") : "");
   const fields = friendlyDocumentFields(response.structured_fields || {}).join("\n");
   renderResponse({
     cancer: topic || reportType,
     request_id: response.document_id,
     mode: "report_review",
-    answer: "Your report has been read and its available findings have been organized into a plain-language summary. This can help you prepare for a conversation with your care team; it cannot diagnose cancer or replace the original report.",
+    answer: response.plain_language_summary || "Your report has been read and its available findings have been organized into a plain-language summary. This can help you prepare for a conversation with your care team; it cannot diagnose cancer or replace the original report.",
     urgent_guidance: "Please review the original report with the clinician who ordered the test. Ask them to explain any abnormal, suspicious, or unclear wording and whether follow-up testing is needed.",
     sections: [
-      { title: "Report overview", content: `${reportType}. ${response.ocr_status === "ocr_required" ? "Some text may require visual confirmation because the document is image-based." : "Text was available for structured review."}`, bullets: [] },
+      { title: "Report overview", content: `${reportType}. ${response.needs_ocr ? "This file needs OCR or a text-searchable copy before its wording can be safely explained." : "Text was available for structured review."}`, bullets: [] },
       { title: "Findings mentioned in the report", content: evidence || "No clearly supported finding phrase was extracted. The original report needs clinician review.", bullets: [] },
       { title: "Important report details", content: fields || "No stage, measurement, date, or other structured detail was extracted.", bullets: [] },
       { title: "What this means", content: "A report phrase can only be understood in context. Diagnosis and treatment decisions require the full report, examination, prior results, and the treating team.", bullets: [] },
     ],
-    follow_up_questions: [
-      "Which finding in this report is most important?",
-      "Does this report suggest another test or biopsy?",
-      "What should I ask my doctor about the risk or next step?",
+    follow_up_questions: response.questions_for_care_team?.length ? response.questions_for_care_team : [
+      "Which finding in this report is most important?", "Does this report suggest another test or biopsy?", "What should I ask my doctor about the risk or next step?",
     ],
     sources: [],
   });
@@ -620,12 +676,14 @@ function renderUser() {
     $("#user-label").textContent = "Sign out";
   }
   renderAnalysisAccess();
+  renderWorkspaceRail();
   if (signedIn && !state.historyLoaded) loadHistory();
 }
 
 function setModal(open) {
   const modal = $("#auth-modal");
   modal.hidden = !open;
+  document.body.classList.toggle("is-modal-open", open);
   if (open) {
     window.setTimeout(() => $("#email").focus(), 60);
   }
@@ -648,18 +706,46 @@ function updateCharacterCount() {
   $("#character-count").textContent = `${value.length} / 2400`;
 }
 
+const loadingStages = [
+  "Understanding clinical context",
+  "Reviewing uploaded information",
+  "Checking relevant evidence",
+  "Preparing a clear explanation",
+];
+
+function renderLoadingStages() {
+  const steps = $$("#loading-steps li");
+  steps.forEach((step, index) => {
+    step.classList.toggle("is-active", index === state.loadingStage);
+    step.classList.toggle("is-complete", index < state.loadingStage);
+  });
+  const active = loadingStages[state.loadingStage];
+  if (active) $("#loading-copy").textContent = `${active}…`;
+}
+
 function setLoading(loading, title = "Reading your question", copy = "Building a careful, general explanation...") {
   $("#ask-button").disabled = loading;
   $("#loading-state").hidden = !loading;
   $("#question-form").classList.toggle("is-loading", loading);
+  document.body.classList.toggle("is-processing", loading);
+  window.clearInterval(state.loadingTimer);
   if (loading) {
     $("#loading-title").textContent = title;
     $("#loading-copy").textContent = copy;
     $("#question-error").textContent = "";
+    state.loadingStage = 0;
+    window.setTimeout(renderLoadingStages, 0);
+    state.loadingTimer = window.setInterval(() => {
+      state.loadingStage = (state.loadingStage + 1) % loadingStages.length;
+      renderLoadingStages();
+    }, 2400);
+  } else {
+    state.loadingTimer = null;
   }
 }
 
 function renderResponse(response) {
+  document.body.classList.add("viewing-result");
   $("#workspace").hidden = true;
   $("#response-section").hidden = false;
   $("#answer-card").hidden = false;
@@ -699,6 +785,7 @@ function renderResponse(response) {
 }
 
 function showWorkspace() {
+  document.body.classList.remove("viewing-result");
   $("#response-section").hidden = true;
   $("#workspace").hidden = !state.user;
   $("#analysis-section").hidden = true;
@@ -898,6 +985,98 @@ async function restoreSession() {
   }
 }
 
+function setActiveNavigation(action) {
+  $$('[data-nav-action]').forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.navAction === action);
+  });
+}
+
+function closeMobileNavigation() {
+  const toggle = $("#mobile-nav-toggle");
+  const nav = $("#primary-nav");
+  if (!toggle || !nav) return;
+  toggle.classList.remove("is-open");
+  toggle.setAttribute("aria-expanded", "false");
+  nav.classList.remove("is-open");
+}
+
+function showHistoryPanel() {
+  if (!state.user) {
+    setModal(true);
+    showToast("Sign in to view and continue your saved conversations.");
+    return;
+  }
+  $("#history-panel").hidden = false;
+  loadHistory();
+}
+
+function scrollToSection(selector) {
+  const target = $(selector);
+  if (!target) return;
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function handleNavigation(action) {
+  closeMobileNavigation();
+  if (action === "home") {
+    if (state.user) showWorkspace();
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  } else if (action === "guide") {
+    if (!state.user) {
+      setModal(true);
+      return;
+    }
+    showWorkspace();
+    window.setTimeout(() => scrollToSection("#guide-panel"), 60);
+  } else if (action === "history") {
+    showHistoryPanel();
+  } else if (action === "resources") {
+    scrollToSection("#resources");
+  } else if (action === "about") {
+    scrollToSection("#about");
+  }
+  setActiveNavigation(action);
+}
+
+function applyQuickExample(button) {
+  if (!state.user) {
+    setModal(true);
+    return;
+  }
+  const topic = button.dataset.exampleTopic || "";
+  const prompt = button.dataset.examplePrompt || "";
+  showWorkspace();
+  $("#cancer-topic").value = topic;
+  $("#question-text").value = prompt;
+  updateCharacterCount();
+  window.setTimeout(() => {
+    scrollToSection("#guide-panel");
+    $("#question-text").focus();
+  }, 70);
+}
+
+function configureChatDropZones() {
+  $$(".chat-attach").forEach((zone) => {
+    const input = zone.querySelector("input");
+    if (!input) return;
+    zone.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      zone.classList.add("is-dragging");
+    });
+    zone.addEventListener("dragleave", () => zone.classList.remove("is-dragging"));
+    zone.addEventListener("drop", (event) => {
+      event.preventDefault();
+      zone.classList.remove("is-dragging");
+      const files = event.dataTransfer.files;
+      if (input.id === "chat-files") setChatFiles(files);
+      if (input.id === "chat-document") {
+        state.chatDocument = files?.[0] || null;
+        renderChatDocument();
+      }
+    });
+  });
+}
+
 function start() {
   $("#question-form").addEventListener("submit", submitQuestion);
   $("#question-text").addEventListener("input", updateCharacterCount);
@@ -912,7 +1091,7 @@ function start() {
   $("#open-auth").addEventListener("click", () => setModal(true));
   $("#gateway-signin").addEventListener("click", () => setModal(true));
   $("#refresh-workspace").addEventListener("click", () => window.location.reload());
-  $("#open-history").addEventListener("click", () => { $("#history-panel").hidden = false; loadHistory(); });
+  $("#open-history").addEventListener("click", showHistoryPanel);
   $("#close-history").addEventListener("click", () => { $("#history-panel").hidden = true; });
   $("#new-chat").addEventListener("click", startNewChat);
   $("#delete-selected-history").addEventListener("click", deleteSelectedHistory);
@@ -930,6 +1109,16 @@ function start() {
     $("#upload-zone").classList.remove("is-dragging");
     setAnalysisFiles(event.dataTransfer.files);
   });
+  $("#mobile-nav-toggle").addEventListener("click", () => {
+    const toggle = $("#mobile-nav-toggle");
+    const nav = $("#primary-nav");
+    const willOpen = !nav.classList.contains("is-open");
+    toggle.classList.toggle("is-open", willOpen);
+    toggle.setAttribute("aria-expanded", String(willOpen));
+    nav.classList.toggle("is-open", willOpen);
+  });
+  $$('[data-nav-action]').forEach((button) => button.addEventListener("click", () => handleNavigation(button.dataset.navAction)));
+  $$(".rail-example").forEach((button) => button.addEventListener("click", () => applyQuickExample(button)));
   $$('[data-auth-mode]').forEach((button) => button.addEventListener("click", () => setAuthMode(button.dataset.authMode)));
   setAuthMode("login");
   updateCharacterCount();
@@ -938,6 +1127,8 @@ function start() {
   renderHistoryList();
   updateAnalysisModel();
   renderAnalysisFiles();
+  configureChatDropZones();
+  setActiveNavigation("home");
   renderUser();
   loadGuideStatus();
   loadProviders();

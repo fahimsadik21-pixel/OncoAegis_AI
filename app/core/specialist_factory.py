@@ -46,110 +46,33 @@ from app.imaging.ultrasound.tn3k_analysis_service import (
 )
 
 
-
-def create_specialist(
-    model_id: str
-):
-
-    # -----------------
-    # CT Lung
-    # -----------------
-
-    if model_id == "luna16_lung_segmentation":
-        return LUNA16ModelService()
-
-    if model_id == "luna16_nodule_detector":
-        return LUNANoduleModelService()
-
-
-
-    # -----------------
-    # Breast Ultrasound
-    # -----------------
-
-    if model_id in {
-        "busi_breast_segmentation",
-        "busi_breast_classifier",
-    }:
-        return BUSIModelService()
+_SPECIALIST_CLASSES = {
+    "luna16_lung_segmentation": LUNA16ModelService,
+    "luna16_nodule_detector": LUNANoduleModelService,
+    "busi_breast_segmentation": BUSIModelService,
+    "busi_breast_classifier": BUSIModelService,
+    "msd_brain_tumor_segmentation": BrainTumorModelService,
+    "msd_pancreas_segmentation": PancreasAnalysisService,
+    "msd_pancreas_tumor_segmentation": PancreasAnalysisService,
+    "msd_colon_tumor_segmentation": ColonAnalysisService,
+    "ircadb01_liver_tumor_segmentation": LiverAnalysisService,
+    "isic2016_skin_lesion_segmentation": SkinAnalysisService,
+    "cnmc2019_all_cell_classifier": CNMCAnalysisService,
+    "flowcap_aml_patient_classifier": FlowCAPAnalysisService,
+    "tn3k_thyroid_nodule_segmentation": TN3KAnalysisService,
+}
 
 
+def get_specialist_class(model_id: str):
+    """Return the service class without constructing or loading a model."""
 
-    # -----------------
-    # Brain MRI
-    # -----------------
-
-    if model_id == "msd_brain_tumor_segmentation":
-        return BrainTumorModelService()
-
-
-
-    # -----------------
-    # Pancreas CT
-    # -----------------
-
-    if model_id in {
-        "msd_pancreas_segmentation",
-        "msd_pancreas_tumor_segmentation",
-    }:
-        return PancreasAnalysisService()
+    try:
+        return _SPECIALIST_CLASSES[model_id]
+    except KeyError as exc:
+        raise ValueError(
+            f"No specialist factory available for {model_id}"
+        ) from exc
 
 
-
-    # -----------------
-    # Colon CT
-    # -----------------
-
-    if model_id == "msd_colon_tumor_segmentation":
-        return ColonAnalysisService()
-
-
-
-    # -----------------
-    # Liver CT
-    # -----------------
-
-    if model_id == "ircadb01_liver_tumor_segmentation":
-        return LiverAnalysisService()
-
-
-
-    # -----------------
-    # Skin Dermoscopy
-    # -----------------
-
-    if model_id == "isic2016_skin_lesion_segmentation":
-        return SkinAnalysisService()
-
-
-
-    # -----------------
-    # Blood microscopy
-    # -----------------
-
-    if model_id == "cnmc2019_all_cell_classifier":
-        return CNMCAnalysisService()
-
-
-
-    # -----------------
-    # Blood flow cytometry
-    # -----------------
-
-    if model_id == "flowcap_aml_patient_classifier":
-        return FlowCAPAnalysisService()
-
-
-
-    # -----------------
-    # Thyroid ultrasound
-    # -----------------
-
-    if model_id == "tn3k_thyroid_nodule_segmentation":
-        return TN3KAnalysisService()
-
-
-
-    raise ValueError(
-        f"No specialist factory available for {model_id}"
-    )
+def create_specialist(model_id: str):
+    return get_specialist_class(model_id)()

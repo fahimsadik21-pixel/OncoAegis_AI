@@ -52,6 +52,9 @@ class DocumentAnalysis:
     extraction_quality: str = "limited_rule_based"
     ocr_status: str = "not_required"
     status: str = "document_evidence_extracted"
+    plain_language_summary: str = ""
+    key_findings: tuple[str, ...] = ()
+    questions_for_care_team: tuple[str, ...] = ()
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -65,11 +68,18 @@ class DocumentAnalysis:
             "extraction_quality": self.extraction_quality,
             "ocr_status": self.ocr_status,
             "status": self.status,
+            "plain_language_summary": self.plain_language_summary,
+            "key_findings": list(self.key_findings),
+            "questions_for_care_team": list(self.questions_for_care_team),
         }
 
 
 def _is_pdf(filename: str) -> bool:
     return filename.lower().endswith(".pdf")
+
+
+def _is_raster_image(filename: str) -> bool:
+    return Path(filename).suffix.lower() in {".png", ".jpg", ".jpeg"}
 
 
 def _extract_text(filename: str, content: bytes) -> tuple[str, bool]:
@@ -89,8 +99,12 @@ def _extract_text(filename: str, content: bytes) -> tuple[str, bool]:
         average = len(text) / page_count if page_count else 0.0
         return text, bool(page_count and average < 80)
     suffix = Path(filename).suffix.lower()
+    if _is_raster_image(filename):
+        # The deployment intentionally does not invent text from an image.  A
+        # later OCR service can fill this boundary without changing the API.
+        return "", True
     if suffix != ".txt":
-        raise ClinicalDocumentError("Only PDF and TXT clinical documents are supported")
+        raise ClinicalDocumentError("Supported report files are PDF, TXT, PNG, JPG, and JPEG")
     return content.decode("utf-8", errors="ignore").strip(), False
 
 
@@ -306,6 +320,30 @@ def _extract_structured_fields(text: str, document_type: str) -> dict[str, objec
     if stage_match:
         stage = stage_match.group(1).upper()
 
+    diagnosis_lines = []
+    for line in text.splitlines():
+        clean = " ".join(line.split())
+        if clean and re.search(r"\b(final diagnosis|diagnosis|impression|conclusion|comment)\b", clean, re.IGNORECASE):
+            diagnosis_lines.append(clean[:300])
+
+    specimen = []
+    for match in re.finditer(r"\b(?:specimen|tissue|site)\s*[:=-]\s*([^\n]{2,160})", text, re.IGNORECASE):
+        specimen.append(match.group(1).strip())
+
+    histology = []
+    for match in re.finditer(
+        r"\b(?:invasive ductal carcinoma|invasive lobular carcinoma|adenocarcinoma|"
+        r"squamous cell carcinoma|carcinoma in situ|lymphoma|sarcoma|melanoma|"
+        r"neuroendocrine tumor|benign [a-z -]{2,60})\b",
+        text,
+        re.IGNORECASE,
+    ):
+        histology.append(match.group(0))
+
+    grade_match = re.search(r"\b(?:nottingham\s+)?grade\s*[:=-]?\s*([1-3I]{1,8})", text, re.IGNORECASE)
+    margin_match = re.search(r"\b(margins?\s*(?:are|:)?\s*(?:negative|positive|clear|involved|free)[^\n.]{0,100})", text, re.IGNORECASE)
+    node_match = re.search(r"\b(\d+\s*(?:of|/)\s*\d+\s*(?:lymph\s+)?nodes?[^\n.]{0,100})", text, re.IGNORECASE)
+
     dates = sorted(set(re.findall(r"\b(?:\d{4}[-/]\d{1,2}[-/]\d{1,2}|\d{1,2}[-/]\d{1,2}[-/]\d{2,4})\b", text)))
     sections = []
     for line in text.splitlines():
@@ -321,7 +359,92 @@ def _extract_structured_fields(text: str, document_type: str) -> dict[str, objec
         "stage": stage,
         "dates": dates[:20],
         "sections": sections[:30],
+        "diagnosis_lines": diagnosis_lines[:8],
+        "specimen": list(dict.fromkeys(specimen))[:8],
+        "histology_terms": list(dict.fromkeys(histology))[:12],
+        "grade": grade_match.group(1).upper() if grade_match else None,
+        "margin_statement": margin_match.group(1).strip() if margin_match else None,
+        "lymph_node_statement": node_match.group(1).strip() if node_match else None,
     }
+
+
+def _report_explanation(
+    document_type: str,
+    structured_fields: dict[str, object],
+    evidence: tuple[ClinicalEvidence, ...],
+    needs_ocr: bool,
+) -> tuple[str, tuple[str, ...], tuple[str, ...]]:
+    """Turn only extracted phrases into a plain-language, non-diagnostic guide."""
+
+    if needs_ocr:
+        return (
+            "This report appears to be image-based, so readable text was not available for safe automated explanation. Upload a text-searchable PDF or TXT copy, or ask the issuing clinic for a digital report. The original image has not been interpreted as a diagnosis.",
+            ("No report text was extracted from this image-based file.",),
+            ("Can I have a text-searchable PDF or the written report?", "Which clinician should explain the original report with me?"),
+        )
+
+    statuses = {item.confirmation_status for item in evidence}
+    if "pathology_confirmed_malignancy" in statuses:
+        summary = (
+            "The extracted pathology wording includes explicit malignant or neoplastic terminology. "
+            "Pathology is strong evidence, but the signed report and pathologist should confirm the exact type, site, grade, margins, biomarkers, and stage-related details."
+        )
+    elif "pathology_confirmed_benign" in statuses:
+        summary = (
+            "The extracted pathology wording includes benign or negative-for-malignancy language. "
+            "This should still be confirmed against the signed report and considered together with imaging and the sampled site."
+        )
+    elif "imaging_suspicious_not_confirmed" in statuses:
+        summary = (
+            "The report contains a radiology phrase describing a lesion, mass, nodule, or suspicious pattern. "
+            "Imaging wording alone does not confirm cancer; the report's recommendation and any required pathology or follow-up imaging matter."
+        )
+    elif "imaging_no_suspicious_finding" in statuses:
+        summary = (
+            "The extracted radiology wording includes a negative suspicious-finding phrase. "
+            "It should be read with the full report, the reason for the scan, and the clinician's assessment."
+        )
+    else:
+        summary = (
+            "The available report text was organized into structured details, but no definitive cancer-related statement was safely extracted. "
+            "The original report and the ordering clinician remain the source for interpretation."
+        )
+
+    findings: list[str] = []
+    for item in evidence:
+        findings.append(item.statement)
+    for value in structured_fields.get("diagnosis_lines", []):
+        findings.append(f"Report line: {value}")
+    for value in structured_fields.get("histology_terms", []):
+        findings.append(f"Mentioned tissue term: {value}")
+    stage = structured_fields.get("stage")
+    if stage:
+        findings.append(f"Reported stage expression: {stage} (not independently interpreted)")
+    for measurement in structured_fields.get("measurements", [])[:3]:
+        if isinstance(measurement, dict):
+            findings.append(f"Reported measurement: {measurement.get('source_span', 'measurement mentioned')}")
+    if not findings:
+        findings.append("No diagnosis line, measurement, stage, or evidence phrase was reliably extracted.")
+
+    if document_type == "PATHOLOGY":
+        questions = (
+            "What is the exact final diagnosis and the organ/site sampled?",
+            "Do grade, margins, lymph nodes, or biomarkers change the next step?",
+            "Does this pathology agree with the imaging and clinical findings?",
+        )
+    elif document_type == "RADIOLOGY":
+        questions = (
+            "Which imaging finding is most important, and how concerning is it?",
+            "Does the report recommend follow-up imaging, a specialist review, or biopsy?",
+            "How does this scan compare with previous imaging?",
+        )
+    else:
+        questions = (
+            "Which lines of this report matter most for my care?",
+            "Does this result need repeat testing, a specialist review, or pathology?",
+            "What result or symptom would need urgent attention?",
+        )
+    return summary, tuple(dict.fromkeys(findings))[:8], questions
 
 
 def analyze_clinical_document(
@@ -342,11 +465,13 @@ def analyze_clinical_document(
     if needs_ocr:
         ocr_status = "required_not_run"
         extraction_quality = "limited_text_layer"
-        warnings.append(
-            "Very little embedded PDF text was found; OCR is required before relying on this document."
-        )
+        if _is_raster_image(filename):
+            warnings.append("This image-based report needs OCR or a text-searchable copy before its wording can be explained.")
+        else:
+            warnings.append("Very little embedded PDF text was found; OCR is required before relying on this document.")
     if not evidence:
         warnings.append("No structured cancer-related evidence was detected.")
+    summary, key_findings, questions = _report_explanation(document_type, structured_fields, evidence, needs_ocr)
     return DocumentAnalysis(
         filename=filename,
         document_type=document_type,
@@ -357,4 +482,7 @@ def analyze_clinical_document(
         structured_fields=structured_fields,
         extraction_quality=extraction_quality,
         ocr_status=ocr_status,
+        plain_language_summary=summary,
+        key_findings=key_findings,
+        questions_for_care_team=questions,
     )

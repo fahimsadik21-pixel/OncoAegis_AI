@@ -320,10 +320,11 @@ def normalize_specialist_input(
     spec = get_model_registry().get_spec(model_id)
     if spec is None:
         raise SpecialistInputError(f"Unknown specialist model: {model_id}")
-    if not spec.checkpoint_available:
-        raise SpecialistInputError(
-            f"Specialist checkpoint is unavailable: {model_id}"
-        )
+    # Input normalization is deliberately independent of checkpoint state.
+    # This keeps format/privacy validation useful when a deployment is still
+    # downloading a selected model. The API boundary calls
+    # ``ensure_model_checkpoint`` before inference and turns an unavailable
+    # artifact into a clear HTTP 503 rather than confusing it with a bad file.
     _validate_declared_metadata(spec, modality=modality, organ=organ)
 
     workspace_path = Path(workspace)

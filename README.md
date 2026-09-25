@@ -11,11 +11,11 @@ never confirms malignancy by itself.
 
 ## What is implemented
 
-- Cancer information assistant with English and Bangla responses.
+- Cancer information assistant with English and Bangla responses, 53 disease-specific offline education profiles, and medical-name aliases such as ACC, gastric cancer, cholangiocarcinoma, osteosarcoma, and mycosis fungoides.
 - Local email/password authentication with JWT access and refresh sessions.
 - Google and Apple OAuth-ready flows.
 - User-scoped chat history with resume, private image thumbnails and deletion.
-- PDF/TXT document intelligence for pathology, radiology and laboratory text.
+- PDF/TXT document intelligence for pathology, radiology and laboratory text, with safe PNG/JPG/JPEG report intake and an explicit OCR boundary when readable report text is unavailable.
 - Multimodal evidence fusion with conflict detection and clinical abstention.
 - One specialist API: `POST /analyze/specialist`.
 - Model registry, dataset registry, routing and standard analysis contracts.
@@ -161,11 +161,43 @@ specialist integration and phase-one evaluation reporting.
 ## Deployment boundary
 
 The frontend can be hosted on Vercel. The FastAPI backend and model inference
-are better hosted on Render, Railway or a managed VM because PyTorch, medical
-libraries and model checkpoints are not a good fit for Vercel serverless
-limits. Configure the frontend API base URL to the deployed backend and set
-production JWT, provider, CORS, retention and monitoring values before public
-use.
+belong on Railway, Render, or a managed VM because PyTorch, medical libraries
+and trained checkpoints are not a good fit for Vercel serverless limits.
+
+### Railway-ready backend profile
+
+This repository includes `railway.toml`. It starts FastAPI with Railway's
+assigned port and uses `/health` as the deployment health check. The backend
+does **not** download every checkpoint at boot on Railway. Instead, it fetches
+only the specialist selected for an analysis and releases that specialist
+after the request. That limits boot storage and memory pressure on small
+instances.
+
+Before a Railway deployment, attach one persistent volume at `/data` and set
+these Railway Variables:
+
+```text
+ONCOAEGIS_JWT_SECRET_KEY=<long random value>
+ONCOAEGIS_AUTH_DATABASE_PATH=/data/auth.sqlite3
+ONCOAEGIS_DATABASE_PATH=/data/oncoaegis.sqlite3
+ONCOAEGIS_DOWNLOAD_CHECKPOINTS=true
+ONCOAEGIS_PREFETCH_CHECKPOINTS=false
+ONCOAEGIS_EVICT_MODELS_AFTER_REQUEST=true
+ONCOAEGIS_CHECKPOINT_REPOSITORY=skfahim21/oncoaegis-checkpoints
+```
+
+The persistent volume preserves authenticated accounts, chat history, case
+metadata and audit records across deployments. The storage layer deliberately
+does not persist raw uploads. After Railway provides its public backend URL,
+replace the Render destinations in `web/vercel.json` with that Railway URL and
+redeploy the Vercel frontend.
+
+The public Hugging Face checkpoint repository currently needs a real binary
+for `msd_brain_tumor/msd_brain_tumor_best.pt` (or a matching `_last.pt`). A
+Git-LFS pointer file is intentionally rejected. Until the actual trained brain
+weight is uploaded, the Brain MRI model is reported as unavailable instead of
+producing a misleading result. The other validated specialist services can be
+loaded on demand from their available checkpoint artifacts.
 
 ## Safety and governance
 

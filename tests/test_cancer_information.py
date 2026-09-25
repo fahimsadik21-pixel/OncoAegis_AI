@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 from app.api.cancer_information_api import ask_about_cancer, cancer_information_status
 from app.schemas.cancer_information import CancerInformationRequest
-from app.cancer_info.service import CancerInformationService, normalize_topic
+from app.cancer_info.service import _ALIASES, _OFFLINE_PROFILES, CancerInformationService, normalize_topic
 
 
 class CancerInformationTests(unittest.TestCase):
@@ -57,6 +57,38 @@ class CancerInformationTests(unittest.TestCase):
         self.assertEqual(response.cancer, "A rare cancer subtype")
         self.assertFalse(response.diagnostic_conclusion)
         self.assertTrue(response.expert_review_required)
+
+    def test_aliases_resolve_to_complete_disease_specific_profiles(self):
+        self.assertEqual(
+            set(key for key, _label in _ALIASES.values()),
+            set(_OFFLINE_PROFILES),
+        )
+        aliases = {
+            "adrenocortical carcinoma": "adrenal_cancer",
+            "gastric cancer": "stomach_cancer",
+            "cholangiocarcinoma": "bile_duct_cancer",
+            "melanoma": "melanoma",
+            "osteosarcoma": "bone_cancer",
+            "mycosis fungoides": "cutaneous_t_cell_lymphoma",
+        }
+        for alias, expected_key in aliases.items():
+            topic = normalize_topic(alias)
+            self.assertEqual(topic.key, expected_key)
+            profile = _OFFLINE_PROFILES[topic.key]
+            self.assertTrue(profile["symptoms"])
+            self.assertTrue(profile["tests"])
+            self.assertTrue(profile["treatment"])
+            self.assertTrue(profile["prevention"])
+
+    def test_two_cancers_do_not_share_generic_symptom_bullets(self):
+        with patch.dict(os.environ, {}, clear=True):
+            breast = self.service.answer(CancerInformationRequest(cancer="breast cancer", question="symptoms"))
+            thyroid = self.service.answer(CancerInformationRequest(cancer="thyroid cancer", question="symptoms"))
+        breast_symptoms = next(section.bullets for section in breast.sections if section.title == "Possible symptoms")
+        thyroid_symptoms = next(section.bullets for section in thyroid.sections if section.title == "Possible symptoms")
+        self.assertNotEqual(breast_symptoms, thyroid_symptoms)
+        self.assertTrue(any("breast" in item.lower() or "nipple" in item.lower() for item in breast_symptoms))
+        self.assertTrue(any("neck" in item.lower() or "thyroid" in item.lower() for item in thyroid_symptoms))
 
     def test_status_never_claims_diagnosis(self):
         with patch.dict(os.environ, {}, clear=True):

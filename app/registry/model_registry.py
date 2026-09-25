@@ -12,6 +12,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, Iterable
 
+from app.deployment.checkpoint_bootstrap import (
+    MODEL_CHECKPOINTS,
+    checkpoint_download_enabled,
+    checkpoint_is_ready,
+)
+
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -104,12 +110,69 @@ class ModelSpec:
 
 
     @property
-    def checkpoint_available(self):
+    def required_checkpoint_paths(self) -> tuple[Path, ...]:
+        """Return every artifact required by this specialist service.
 
+        A two-stage pipeline is not ready when only its final-stage weight is
+        present.  The deployment bootstrap owns the authoritative mapping for
+        those pipelines, while the registry keeps the single-path fallback for
+        non-PyTorch or legacy models.
+        """
+
+        registered = MODEL_CHECKPOINTS.get(self.model_id)
+        if registered:
+            return tuple(
+                _PROJECT_ROOT / "checkpoints" / relative_path
+                for relative_path in registered
+            )
         if not self.checkpoint_path:
+            return ()
+        return (_PROJECT_ROOT / self.checkpoint_path,)
+
+
+    @property
+    def checkpoint_ready(self) -> bool:
+        """Whether a real, usable checkpoint is present on this machine."""
+
+        required = self.required_checkpoint_paths
+        if not required:
             return True
 
-        return (_PROJECT_ROOT / self.checkpoint_path).is_file()
+        for checkpoint in required:
+            if checkpoint.suffix.lower() in {".pt", ".pth", ".ckpt"}:
+                if not checkpoint_is_ready(checkpoint):
+                    return False
+            elif not checkpoint.is_file() or checkpoint.stat().st_size <= 0:
+                return False
+        return True
+
+
+    @property
+    def checkpoint_available(self) -> bool:
+        """Whether the checkpoint is ready now or can be fetched on demand."""
+
+        if self.checkpoint_ready:
+            return True
+
+        # Railway/managed deployments fetch only the selected model. This
+        # keeps normal route selection usable without treating a Git-LFS
+        # pointer as a trained checkpoint.
+        # Only explicitly registered PyTorch specialists are downloadable.
+        # A local FlowCAP/DREAM6 asset, for example, must not be advertised as
+        # downloadable merely because this process happens to run on Railway.
+        return bool(
+            self.model_id in MODEL_CHECKPOINTS
+            and checkpoint_download_enabled()
+        )
+
+
+    @property
+    def checkpoint_status(self) -> str:
+        if self.checkpoint_ready:
+            return "available"
+        if self.checkpoint_available:
+            return "available_on_demand"
+        return "checkpoint_missing"
 
 
     def to_dict(self):
@@ -124,11 +187,13 @@ class ModelSpec:
         rendered["output"] = list(self.outputs)
         rendered["outputs"] = list(self.outputs)
 
-        rendered["availability"] = (
-            "available"
-            if self.checkpoint_available
-            else "checkpoint_missing"
-        )
+        rendered["status"] = self.checkpoint_status
+        rendered["availability"] = self.checkpoint_status
+        rendered["checkpoint_ready"] = self.checkpoint_ready
+        rendered["required_checkpoints"] = [
+            str(path.relative_to(_PROJECT_ROOT))
+            for path in self.required_checkpoint_paths
+        ]
 
         return rendered
 

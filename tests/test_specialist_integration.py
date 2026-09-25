@@ -56,6 +56,41 @@ class TestSpecialistIntegration(unittest.TestCase):
         )
         self.assertFalse(result.safety.clinical_diagnosis)
 
+    def test_execution_engine_releases_cached_model_on_constrained_host(self):
+        class FakeLiverService:
+            def analyze(self, volume, *, spacing_mm):
+                return SimpleNamespace(
+                    liver_detected=True,
+                    tumor_detected=False,
+                    liver_voxels=12,
+                    tumor_voxels=0,
+                    model_version="test",
+                    crop_bounds=None,
+                )
+
+        from app.adapters.liver_ct_adapter import LiverCTAdapter
+
+        with patch(
+            "app.core.execution_engine.get_or_create_specialist",
+            return_value=FakeLiverService(),
+        ), patch(
+            "app.core.execution_engine.get_adapter",
+            return_value=LiverCTAdapter(),
+        ), patch(
+            "app.core.execution_engine.model_eviction_enabled",
+            return_value=True,
+        ), patch(
+            "app.core.execution_engine.release_specialist",
+        ) as release_specialist:
+            ExecutionEngine().execute(
+                model_id="ircadb01_liver_tumor_segmentation",
+                input_data=np.zeros((2, 2, 2), dtype=np.float32),
+            )
+
+        release_specialist.assert_called_once_with(
+            "ircadb01_liver_tumor_segmentation"
+        )
+
     def test_flowcap_mapping_adapter_preserves_scores(self):
         result = FlowCAPAdapter().convert(
             {

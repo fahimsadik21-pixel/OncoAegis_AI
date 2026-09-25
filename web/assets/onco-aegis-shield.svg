@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Onco Aegis AI shield</title>
+  <desc id="desc">A cyan and violet medical shield with a white cross.</desc>
+  <defs>
+    <linearGradient id="outer" x1="19" y1="7" x2="109" y2="119" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#50f4f6"/>
+      <stop offset=".42" stop-color="#16aeda"/>
+      <stop offset="1" stop-color="#6e59e9"/>
+    </linearGradient>
+    <linearGradient id="inner" x1="38" y1="31" x2="92" y2="101" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1e4f94"/>
+      <stop offset=".5" stop-color="#30286d"/>
+      <stop offset="1" stop-color="#8b4ad9"/>
+    </linearGradient>
+    <linearGradient id="facet" x1="32" y1="18" x2="91" y2="54" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#c6ffff" stop-opacity=".78"/>
+      <stop offset="1" stop-color="#68c7ff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <path d="M64 4 112 25v35c0 31-19.4 53.2-48 64C35.4 113.2 16 91 16 60V25L64 4Z" fill="url(#outer)" filter="url(#glow)"/>
+  <path d="m64 13 39 17.1v29.4c0 25.5-15.6 44.9-39 55.2-23.4-10.3-39-29.7-39-55.2V30.1L64 13Z" fill="#0f417e" stroke="#b9fcff" stroke-opacity=".74" stroke-width="2"/>
+  <path d="m64 18 33 14.5v10L64 87 31 42.5v-10L64 18Z" fill="url(#facet)"/>
+  <path d="m64 27 28 12.4v20.3c0 19.1-10.8 34.2-28 42.8-17.2-8.6-28-23.7-28-42.8V39.4L64 27Z" fill="url(#inner)"/>
+  <circle cx="64" cy="64" r="24" fill="#9b6eff" fill-opacity=".36" stroke="#c4fbff" stroke-opacity=".5"/>
+  <path d="M56 42h16v14h14v16H72v14H56V72H42V56h14V42Z" fill="#fff"/>
+  <path d="M59 45h10v14h14v10H69v14H59V69H45V59h14V45Z" fill="#e8ffff" fill-opacity=".64"/>
+  <circle cx="42" cy="32" r="3" fill="#e3ffff"/>
+  <circle cx="92" cy="84" r="2.5" fill="#d5b9ff"/>
+</svg>

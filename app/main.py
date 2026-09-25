@@ -16,7 +16,13 @@ from app.core.capability_registry import get_capabilities
 from app.core.input_inspector import inspect_input
 from app.core.model_router import route_specialist_model
 from app.core.analysis_orchestrator import AnalysisOrchestrator
-from app.deployment.checkpoint_bootstrap import bootstrap_checkpoints
+from app.deployment.checkpoint_bootstrap import (
+    CheckpointUnavailableError,
+    bootstrap_checkpoints,
+    checkpoint_prefetch_enabled,
+    ensure_model_checkpoint,
+)
+from app.deployment.resource_policy import model_eviction_enabled
 from app.core.specialist_input import (
     MAX_SPECIALIST_FILE_BYTES,
     MAX_SPECIALIST_FILES,
@@ -205,8 +211,9 @@ app.include_router(chat_history_router)
 
 @app.on_event("startup")
 def download_deployment_checkpoints() -> None:
-    """Make public research checkpoints available on ephemeral deploys."""
-    bootstrap_checkpoints()
+    """Optionally prefetch models; Railway otherwise fetches them on demand."""
+    if checkpoint_prefetch_enabled():
+        bootstrap_checkpoints()
 
 # The product UI is intentionally mounted beside the JSON API so the same
 # FastAPI process can be used locally without a separate frontend server.
@@ -219,7 +226,7 @@ if WEB_ROOT.is_dir():
     )
     app.mount(
         "/assets",
-        StaticFiles(directory=str(WEB_ROOT)),
+        StaticFiles(directory=str(WEB_ROOT / "assets")),
         name="frontend-assets",
     )
 
@@ -227,6 +234,20 @@ if WEB_ROOT.is_dir():
     @app.get("/app/", include_in_schema=False)
     def web_app() -> FileResponse:
         return FileResponse(WEB_ROOT / "index.html")
+
+    # The Vercel frontend serves these files from its web root. These matching
+    # routes make the same untouched HTML work when the UI is opened directly
+    # from the FastAPI application at /app during local or Railway testing.
+    @app.get("/styles.css", include_in_schema=False)
+    def web_styles() -> FileResponse:
+        return FileResponse(WEB_ROOT / "styles.css", media_type="text/css")
+
+    @app.get("/app.js", include_in_schema=False)
+    def web_script() -> FileResponse:
+        return FileResponse(
+            WEB_ROOT / "app.js",
+            media_type="application/javascript",
+        )
 
 _busi_service: BUSIModelService | None = None
 _luna_service: LUNA16ModelService | None = None
@@ -317,6 +338,10 @@ def get_cnmc_service() -> CNMCAnalysisService:
 
     global _cnmc_service
 
+    ensure_model_checkpoint("cnmc2019_all_cell_classifier")
+    if model_eviction_enabled():
+        return CNMCAnalysisService()
+
     if _cnmc_service is None:
         _cnmc_service = CNMCAnalysisService()
 
@@ -325,6 +350,10 @@ def get_cnmc_service() -> CNMCAnalysisService:
 
 def get_skin_service() -> SkinAnalysisService:
     global _skin_service
+
+    ensure_model_checkpoint("isic2016_skin_lesion_segmentation")
+    if model_eviction_enabled():
+        return SkinAnalysisService()
 
     if _skin_service is None:
         _skin_service = SkinAnalysisService()
@@ -335,6 +364,10 @@ def get_skin_service() -> SkinAnalysisService:
 def get_colon_service() -> ColonAnalysisService:
     global _colon_service
 
+    ensure_model_checkpoint("msd_colon_tumor_segmentation")
+    if model_eviction_enabled():
+        return ColonAnalysisService()
+
     if _colon_service is None:
         _colon_service = ColonAnalysisService()
 
@@ -343,6 +376,9 @@ def get_colon_service() -> ColonAnalysisService:
 
 def get_busi_service() -> BUSIModelService:
     global _busi_service
+    ensure_model_checkpoint("busi_breast_segmentation")
+    if model_eviction_enabled():
+        return BUSIModelService()
     if _busi_service is None:
         _busi_service = BUSIModelService()
     return _busi_service
@@ -350,6 +386,9 @@ def get_busi_service() -> BUSIModelService:
 
 def get_luna_service() -> LUNA16ModelService:
     global _luna_service
+    ensure_model_checkpoint("luna16_lung_segmentation")
+    if model_eviction_enabled():
+        return LUNA16ModelService()
     if _luna_service is None:
         _luna_service = LUNA16ModelService()
     return _luna_service
@@ -357,6 +396,10 @@ def get_luna_service() -> LUNA16ModelService:
 
 def get_brain_service() -> BrainTumorModelService:
     global _brain_service
+
+    ensure_model_checkpoint("msd_brain_tumor_segmentation")
+    if model_eviction_enabled():
+        return BrainTumorModelService()
 
     if _brain_service is None:
         _brain_service = BrainTumorModelService()
@@ -367,6 +410,10 @@ def get_brain_service() -> BrainTumorModelService:
 def get_liver_service() -> LiverAnalysisService:
     global _liver_service
 
+    ensure_model_checkpoint("ircadb01_liver_tumor_segmentation")
+    if model_eviction_enabled():
+        return LiverAnalysisService()
+
     if _liver_service is None:
         _liver_service = LiverAnalysisService()
 
@@ -375,6 +422,10 @@ def get_liver_service() -> LiverAnalysisService:
 
 def get_pancreas_service() -> PancreasAnalysisService:
     global _pancreas_service
+
+    ensure_model_checkpoint("msd_pancreas_segmentation")
+    if model_eviction_enabled():
+        return PancreasAnalysisService()
 
     if _pancreas_service is None:
         _pancreas_service = PancreasAnalysisService()
@@ -406,13 +457,11 @@ def system_status():
 
     registered_models = get_model_registry().list()
     model_status = {
-        spec.model_id: (
-            "available" if spec.checkpoint_available else "checkpoint_missing"
-        )
+        spec.model_id: spec.checkpoint_status
         for spec in registered_models
     }
     required_baselines_ready = all(
-        model_status.get(model_id) == "available"
+        model_status.get(model_id) in {"available", "available_on_demand"}
         for model_id in (
             "luna16_lung_segmentation",
             "busi_breast_segmentation",
@@ -537,6 +586,7 @@ async def analyze_specialist(
             raise SpecialistInputError(
                 f"Unknown specialist model: {model_id}"
             )
+        ensure_model_checkpoint(model_id)
         if task or cancer_type:
             decision = route_specialist_model(
                 modality=modality or model_spec.modality,
@@ -565,6 +615,14 @@ async def analyze_specialist(
                 input_data=normalized.data,
                 input_metadata=normalized.metadata,
             )
+    except CheckpointUnavailableError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "The selected research model is unavailable in this deployment. "
+                "Choose another route or try again after its checkpoint is published."
+            ),
+        ) from exc
     except SpecialistInputError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
@@ -914,7 +972,7 @@ async def analyze_input(
     response_model=DocumentAnalysisResponse,
 )
 async def analyze_document(
-    file: UploadFile = File(..., description="One PDF or TXT clinical document"),
+    file: UploadFile = File(..., description="One PDF, TXT, PNG, JPG, or JPEG clinical document"),
 ):
     """Extract structured, non-diagnostic evidence from a clinical document."""
 

@@ -42,6 +42,27 @@ class TestClinicalIntelligence(unittest.TestCase):
             "imaging_suspicious_not_confirmed",
         )
 
+    def test_pathology_report_gets_plain_language_summary_and_fields(self):
+        result = analyze_clinical_document(
+            "breast_pathology_report.txt",
+            b"Final diagnosis: Invasive ductal carcinoma. Specimen: Left breast. "
+            b"Tumor size: 18 mm. Nottingham grade: 2. ER: positive. Margins: negative.",
+        )
+        self.assertIn("pathology", result.plain_language_summary.lower())
+        self.assertTrue(result.key_findings)
+        self.assertTrue(result.questions_for_care_team)
+        self.assertEqual(result.structured_fields["grade"], "2")
+        self.assertIn(
+            "invasive ductal carcinoma",
+            [term.lower() for term in result.structured_fields["histology_terms"]],
+        )
+
+    def test_image_report_has_an_honest_ocr_boundary(self):
+        result = analyze_clinical_document("pathology_photo.jpg", b"upload-bytes")
+        self.assertTrue(result.needs_ocr)
+        self.assertEqual(result.ocr_status, "required_not_run")
+        self.assertIn("image-based", result.plain_language_summary.lower())
+
     def test_conflicting_benign_pathology_with_suspicious_imaging_abstains(self):
         pathology = analyze_clinical_document(
             "liver_pathology.txt",
